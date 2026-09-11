@@ -290,45 +290,6 @@ const VOCAB = [
   ]},
 ];
 
-
-const CASES = [
-  {suf:'-t', name:'Accusatif (COD)', ex:'Látom a házat.', tr:'Je vois la maison.'},
-  {suf:'-ban / -ben', name:'« dans » (position)', ex:'A házban vagyok.', tr:'Je suis dans la maison.'},
-  {suf:'-ba / -be', name:'« vers l’intérieur de »', ex:'A házba megyek.', tr:'Je vais dans la maison.'},
-  {suf:'-ból / -ből', name:'« hors de »', ex:'A házból jövök.', tr:'Je viens de la maison.'},
-  {suf:'-on / -en / -ön', name:'« sur » (position)', ex:'Az asztalon van.', tr:'C’est sur la table.'},
-  {suf:'-ra / -re', name:'« vers la surface de »', ex:'Az asztalra teszem.', tr:'Je le pose sur la table.'},
-  {suf:'-ról / -ről', name:'« de dessus » / « au sujet de »', ex:'Az asztalról beszélünk.', tr:'On parle de la table.'},
-  {suf:'-nál / -nél', name:'« chez, à côté de »', ex:'Péternél vagyok.', tr:'Je suis chez Péter.'},
-  {suf:'-hoz / -hez / -höz', name:'« vers, chez » (direction)', ex:'Péterhez megyek.', tr:'Je vais chez Péter.'},
-  {suf:'-tól / -től', name:'« depuis, de la part de »', ex:'Pétertől jövök.', tr:'Je viens de chez Péter.'},
-  {suf:'-nak / -nek', name:'Datif — « à, pour »', ex:'Péternek adom.', tr:'Je le donne à Péter.'},
-  {suf:'-val / -vel', name:'« avec »', ex:'Késsel eszem.', tr:'Je mange avec un couteau.'},
-  {suf:'-ért', name:'« pour, à cause de »', ex:'A gyerekért teszem.', tr:'Je le fais pour l’enfant.'},
-  {suf:'-ig', name:'« jusqu’à »', ex:'Hétig dolgozom.', tr:'Je travaille jusqu’à sept heures.'},
-  {suf:'-ként', name:'« en tant que »', ex:'Tanárként dolgozik.', tr:'Il travaille en tant que professeur.'},
-  {suf:'-kor', name:'« à » (heure)', ex:'Hétkor indulunk.', tr:'On part à sept heures.'},
-];
-
-const CONJ = {
-  indef:[['látok','je vois (qqch.)'],['látsz','tu vois'],['lát','il/elle voit'],['látunk','nous voyons'],['láttok','vous voyez'],['látnak','ils/elles voient']],
-  def:[['látom','je le/la vois'],['látod','tu le/la vois'],['látja','il/elle le/la voit'],['látjuk','nous le/la voyons'],['látjátok','vous le/la voyez'],['látják','ils/elles le/la voient']],
-};
-
-const LENNI = [['vagyok','je suis'],['vagy','tu es'],['van','il/elle est'],['vagyunk','nous sommes'],['vagytok','vous êtes'],['vannak','ils/elles sont']];
-const POSS_HAZ = [['házam','ma maison'],['házad','ta maison'],['háza','sa maison'],['házunk','notre maison'],['házatok','votre maison'],['házuk','leur maison']];
-const POSS_KERT = [['kertem','mon jardin'],['kerted','ton jardin'],['kertje','son jardin'],['kertünk','notre jardin'],['kertetek','votre jardin'],['kertjük','leur jardin']];
-
-// Regular present-tense (indefinite) conjugation patterns, one example verb per vowel-harmony class
-const VERB_PATTERNS = [
-  {group:'Mots graves (a, á, o, ó, u, ú)', verb:'vár', meaning:'attendre', rows:[
-    ['várok','j’attends'],['vársz','tu attends'],['vár','il/elle attend'],['várunk','nous attendons'],['vártok','vous attendez'],['várnak','ils/elles attendent']]},
-  {group:'Mots aigus non arrondis (e, é, i, í)', verb:'kér', meaning:'demander', rows:[
-    ['kérek','je demande'],['kérsz','tu demandes'],['kér','il/elle demande'],['kérünk','nous demandons'],['kértek','vous demandez'],['kérnek','ils/elles demandent']]},
-  {group:'Mots aigus arrondis (ö, ő, ü, ű)', verb:'köszön', meaning:'saluer / remercier', rows:[
-    ['köszönök','je salue'],['köszönsz','tu salues'],['köszön','il/elle salue'],['köszönünk','nous saluons'],['köszöntök','vous saluez'],['köszönnek','ils/elles saluent']]},
-];
-
 /* ============================================================
    NIVEAUX CECRL & PARCOURS DE FORMATION
    Heures cumulées depuis zéro, cohérentes avec le barème CECRL usuel

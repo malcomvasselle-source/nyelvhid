@@ -70,6 +70,11 @@ function saveAcademyDone(){ try{ localStorage.setItem(LS_ACADEMY_DONE, JSON.stri
 let academyDone = loadAcademyDone();
 let academyDialogueMode = {}; // transient, per-session: {moduleId: 'formal'|'informal'}
 
+const LS_GRAMMAR_DONE = 'nyelvhid_grammar_rules_done_v1';
+function loadGrammarDone(){ try{ return JSON.parse(localStorage.getItem(LS_GRAMMAR_DONE)) || {}; }catch(e){ return {}; } }
+function saveGrammarDone(){ try{ localStorage.setItem(LS_GRAMMAR_DONE, JSON.stringify(grammarDone)); }catch(e){} }
+let grammarDone = loadGrammarDone(); // {"m4-r0": true, ...} — id = "<moduleId>-r<ruleIndex>"
+
 const LS_DAILY_TEST = 'nyelvhid_daily_test_v1';
 function loadDailyScores(){ try{ return JSON.parse(localStorage.getItem(LS_DAILY_TEST)) || {}; }catch(e){ return {}; } }
 function saveDailyScores(){ try{ localStorage.setItem(LS_DAILY_TEST, JSON.stringify(dailyScores)); }catch(e){} }
@@ -425,76 +430,45 @@ function renderGrammarAcademyRules(){
       ${g.modules.map(m=>`
         <div class="grammar-module">
           <p class="grammar-module-title">M${m.num} — ${m.title}</p>
-          ${m.rules.map(r=>{
+          ${m.rules.map((r,ri)=>{
+            const ruleId = `${m.id}-r${ri}`;
             const tableHtml = r.table ? `<table class="paradigm"><tr><th>hongrois</th><th>français</th></tr>${r.table.map(row=>`<tr><td class="hu">${row[0]}</td><td>${row[1]}</td></tr>`).join('')}</table>` : '';
             const exHtml = r.examples ? r.examples.map(e=>`<div class="ex-line"><b>${e[0]}</b> — ${e[1]}</div>`).join('') : '';
-            return `<div class="academy-rule">
-              <b class="rt">${r.title}</b>
-              <p class="lede" style="font-size:.9rem;margin-bottom:8px;">${r.body}</p>
-              ${tableHtml}
-              ${exHtml}
+            return `<div class="grule" id="grule-${ruleId}">
+              <div class="grule-head" data-toggle="${ruleId}">
+                <button class="grule-check ${grammarDone[ruleId]?'done':''}" data-check="${ruleId}" title="Marquer comme maîtrisée">✓</button>
+                <b class="grule-title">${r.title}</b>
+                <span class="grule-caret">▸</span>
+              </div>
+              <div class="grule-body">
+                <p class="lede" style="font-size:.9rem;margin-bottom:8px;">${r.body}</p>
+                ${tableHtml}
+                ${exHtml}
+              </div>
             </div>`;
           }).join('')}
         </div>`).join('')}
     </div>`).join('');
+
+  document.querySelectorAll('.grule-head').forEach(h=>{
+    h.addEventListener('click', (e)=>{
+      if(e.target.closest('.grule-check')) return;
+      document.getElementById('grule-'+h.dataset.toggle).classList.toggle('open');
+    });
+  });
+  document.querySelectorAll('.grule-check').forEach(c=>{
+    c.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = c.dataset.check;
+      grammarDone[id] = !grammarDone[id];
+      saveGrammarDone();
+      c.classList.toggle('done', !!grammarDone[id]);
+    });
+  });
 }
 
 function renderGrammar(){
   renderGrammarAcademyRules();
-  document.getElementById('caseGrid').innerHTML = CASES.map((c,i)=>`
-    <div class="card case-card">
-      <div class="suf">${c.suf}</div>
-      <div class="meaning">${c.name}</div>
-      <div class="ex"><button class="mini-speak" data-id="case-${i}" data-say="${c.ex}" title="Écouter">🔊</button> <b>${c.ex}</b><br>${c.tr}</div>
-    </div>`).join('');
-  document.getElementById('caseGrid').querySelectorAll('.mini-speak').forEach(b=>{
-    b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say));
-  });
-
-  document.getElementById('verbPatternGrid').innerHTML = VERB_PATTERNS.map((p,pi)=>`
-    <div class="card pad">
-      <b>${p.verb}</b> — ${p.meaning}
-      <div class="lede" style="font-size:.76rem;margin:2px 0 8px;">${p.group}</div>
-      <table class="paradigm">
-        <tr><th>hongrois</th><th>français</th></tr>
-        ${p.rows.map((r,ri)=>`<tr><td class="hu"><button class="mini-speak" data-id="verb-${pi}-${ri}" data-say="${r[0]}" title="Écouter">🔊</button> ${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
-      </table>
-    </div>`).join('');
-  document.getElementById('verbPatternGrid').querySelectorAll('.mini-speak').forEach(b=>{
-    b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say));
-  });
-
-  renderConj('indef');
-  document.getElementById('conjToggle').addEventListener('click', e=>{
-    const b = e.target.closest('button[data-c]');
-    if(!b) return;
-    document.querySelectorAll('#conjToggle button').forEach(x=>x.classList.toggle('active', x===b));
-    renderConj(b.dataset.c);
-  });
-
-  fillParadigm('possHazTable', 'poss-haz', POSS_HAZ);
-  fillParadigm('possKertTable', 'poss-kert', POSS_KERT);
-  fillParadigm('lenniTable', 'lenni', LENNI);
-}
-function fillParadigm(tableId, idPrefix, rows){
-  const t = document.getElementById(tableId);
-  t.insertAdjacentHTML('beforeend', rows.map((r,i)=>
-    `<tr><td class="hu"><button class="mini-speak" data-id="${idPrefix}-${i}" data-say="${r[0]}" title="Écouter">🔊</button> ${r[0]}</td><td>${r[1]}</td></tr>`
-  ).join(''));
-  t.querySelectorAll('.mini-speak').forEach(b=>b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say)));
-}
-function renderConj(kind){
-  const rows = CONJ[kind];
-  const label = kind==='indef' ? '« látok egy kutyát » — je vois un chien (non précis)' : '« látom a kutyát » — je vois le chien (précis)';
-  document.getElementById('conjBox').innerHTML = `
-    <p class="lede" style="margin-bottom:12px;">${label}</p>
-    <table class="paradigm">
-      <tr><th>hongrois</th><th>français</th></tr>
-      ${rows.map((r,i)=>`<tr><td class="hu"><button class="mini-speak" data-id="conj-${kind}-${i}" data-say="${r[0]}" title="Écouter">🔊</button> ${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
-    </table>`;
-  document.getElementById('conjBox').querySelectorAll('.mini-speak').forEach(b=>{
-    b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say));
-  });
 }
 
 /* ============================================================
