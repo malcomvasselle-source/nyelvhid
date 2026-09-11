@@ -291,44 +291,6 @@ const VOCAB = [
 ];
 
 
-const VOWELS = [
-  ['a','ɒ','court, arrondi — entre le « o » ouvert et le « a » français','alma (pomme)'],
-  ['á','aː','long, ouvert — comme le « a » de « pâte »','árvíz (inondation)'],
-  ['e','ɛ','ouvert — comme le « è » de « mère »','ember (personne)'],
-  ['é','eː','long, fermé — comme le « é » de « été »','étel (nourriture)'],
-  ['i','i','court — comme le « i » de « ici »','ital (boisson)'],
-  ['í','iː','long — même son, tenu plus longtemps','híd (pont)'],
-  ['o','o','court, fermé — comme le « o » de « vélo »','bor (vin)'],
-  ['ó','oː','long — même son, tenu plus longtemps','óra (heure)'],
-  ['ö','ø','court — comme le « eu » de « peu »','öt (cinq)'],
-  ['ő','øː','long — même son, tenu plus longtemps','erő (force)'],
-  ['u','u','court — comme le « ou » de « fou »','busz (bus)'],
-  ['ú','uː','long — même son, tenu plus longtemps','út (route)'],
-  ['ü','y','court — comme le « u » de « lune »','üveg (verre)'],
-  ['ű','yː','long — même son, tenu plus longtemps','tűz (feu)'],
-];
-
-const MINPAIRS = [
-  ['kor','kór','âge / maladie'],
-  ['agy','ágy','cerveau / lit'],
-  ['hat','hát','six / dos'],
-  ['tör','tőr','il casse / poignard'],
-];
-
-const CONS = [
-  ['s','ʃ','comme le « ch » de « chat »','sör (bière)'],
-  ['sz','s','comme le « s » de « salade »','szép (beau)'],
-  ['cs','tʃ','comme le « tch » de « tchèque »','csak (seulement)'],
-  ['zs','ʒ','comme le « j » de « jour »','zsemle (petit pain)'],
-  ['gy','ɟ','« d » palatalisé, proche de « dieu »','gyerek (enfant)'],
-  ['ny','ɲ','comme le « gn » de « agneau »','nyár (été)'],
-  ['ty','c','« t » palatalisé, proche de « tieu »','tyúk (poule)'],
-  ['ly','j','se prononce comme un simple « y »','lyuk (trou)'],
-  ['j','j','comme le « y » de « yaourt »','jó (bon)'],
-  ['dzs','dʒ','comme le « j » anglais de « job »','dzsungel (jungle)'],
-  ['h','h','aspiré, comme le « h » anglais','ház (maison)'],
-];
-
 const CASES = [
   {suf:'-t', name:'Accusatif (COD)', ex:'Látom a házat.', tr:'Je vois la maison.'},
   {suf:'-ban / -ben', name:'« dans » (position)', ex:'A házban vagyok.', tr:'Je suis dans la maison.'},
@@ -365,51 +327,6 @@ const VERB_PATTERNS = [
     ['kérek','je demande'],['kérsz','tu demandes'],['kér','il/elle demande'],['kérünk','nous demandons'],['kértek','vous demandez'],['kérnek','ils/elles demandent']]},
   {group:'Mots aigus arrondis (ö, ő, ü, ű)', verb:'köszön', meaning:'saluer / remercier', rows:[
     ['köszönök','je salue'],['köszönsz','tu salues'],['köszön','il/elle salue'],['köszönünk','nous saluons'],['köszöntök','vous saluez'],['köszönnek','ils/elles saluent']]},
-];
-
-const DIALOGUES = [
-  {title:'Se présenter', lines:[
-    ['Szia! Hogy hívnak?','Salut ! Comment tu t’appelles ?'],
-    ['A nevem Éva. És téged hogy hívnak?','Je m’appelle Éva. Et toi, comment tu t’appelles ?'],
-    ['Engem Marknak hívnak. Örülök, hogy megismertelek.','Moi, on m’appelle Marc. Ravi de te rencontrer.'],
-    ['Honnan jössz?','D’où viens-tu ?'],
-    ['Franciaországból jövök, Párizsból.','Je viens de France, de Paris.'],
-  ]},
-  {title:'Au restaurant', lines:[
-    ['Jó napot! Egy asztalt szeretnék két főre.','Bonjour ! Je voudrais une table pour deux.'],
-    ['Mit szeretne inni?','Que voulez-vous boire ?'],
-    ['Egy kávét kérek, legyen szíves.','Un café, s’il vous plaît.'],
-    ['Készen állnak rendelni?','Êtes-vous prêts à commander ?'],
-    ['Igen, a gulyáslevest kérem.','Oui, je prends la soupe goulasch.'],
-    ['Fizetni szeretnék.','Je voudrais payer.'],
-  ]},
-  {title:'Demander son chemin', lines:[
-    ['Elnézést, hol van a vasútállomás?','Excusez-moi, où est la gare ?'],
-    ['Menjen egyenesen, majd forduljon jobbra.','Allez tout droit, puis tournez à droite.'],
-    ['Messze van innen?','C’est loin d’ici ?'],
-    ['Nem, csak öt perc gyalog.','Non, seulement cinq minutes à pied.'],
-    ['Köszönöm szépen a segítséget!','Merci beaucoup pour votre aide !'],
-  ]},
-  {title:'Faire des courses', lines:[
-    ['Mennyibe kerül ez a sajt?','Combien coûte ce fromage ?'],
-    ['Ezer forintba kerül kilónként.','Ça coûte mille forints le kilo.'],
-    ['Kérek egy fél kilót.','Je voudrais un demi-kilo.'],
-    ['Van még valami, amit szeretne?','Il vous faut autre chose ?'],
-    ['Nem, ez minden, köszönöm.','Non, c’est tout, merci.'],
-  ]},
-  {title:'Chez le médecin', lines:[
-    ['Jól érzi magát?','Vous vous sentez bien ?'],
-    ['Nem nagyon, fáj a fejem.','Pas trop, j’ai mal à la tête.'],
-    ['Mióta fáj?','Depuis quand ça fait mal ?'],
-    ['Tegnap óta.','Depuis hier.'],
-    ['Igyon sok vizet és pihenjen.','Buvez beaucoup d’eau et reposez-vous.'],
-  ]},
-  {title:'Parler du temps qu’il fait', lines:[
-    ['Milyen szép idő van ma!','Quel beau temps aujourd’hui !'],
-    ['Igen, süt a nap. Tegnap esett az eső.','Oui, il fait soleil. Hier il pleuvait.'],
-    ['Szereted a telet?','Tu aimes l’hiver ?'],
-    ['Igen, szeretem, ha havazik.','Oui, j’aime quand il neige.'],
-  ]},
 ];
 
 /* ============================================================

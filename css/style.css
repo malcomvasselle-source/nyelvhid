@@ -191,13 +191,6 @@ section.view.active{display:block;animation:fadein .25s ease;}
   border-left:3px solid var(--gold);background:var(--surface);
   padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0;
 }
-table.pron{width:100%;border-collapse:collapse;font-size:.92rem;}
-table.pron th{
-  text-align:left;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--text-muted);padding:8px 10px;border-bottom:1px solid var(--line);
-}
-table.pron td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;}
-table.pron tr:last-child td{border-bottom:none;}
 .hu-letter{font-family:var(--font-mono);font-weight:600;color:var(--accent);font-size:1rem;}
 .mini-speak{
   border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:4px;
@@ -205,15 +198,6 @@ table.pron tr:last-child td{border-bottom:none;}
 }
 .mini-speak:hover{color:var(--accent);background:var(--surface-2);}
 .tablewrap{overflow-x:auto;}
-
-.pairgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
-@media(min-width:560px){.pairgrid{grid-template-columns:repeat(4,1fr);}}
-.paircard{padding:12px;text-align:center;}
-.paircard .p1,.paircard .p2{font-family:var(--font-mono);font-size:1.05rem;}
-.paircard .p1{color:var(--text);}
-.paircard .p2{color:var(--accent);}
-.paircard .vs{font-size:.7rem;color:var(--text-muted);margin:2px 0;}
-.paircard .mean{font-size:.72rem;color:var(--text-muted);margin-top:4px;}
 
 /* ============ VOCAB ============ */
 .chiprow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
@@ -387,6 +371,15 @@ table.paradigm tr:last-child td{border-bottom:none;}
 .dailytest-score.sc-good{color:var(--success);}
 .dailytest-score.sc-mid{color:var(--gold);}
 .dailytest-score.sc-low{color:var(--danger);}
+
+/* ============ GRAMMAIRE — règles de l'académie ============ */
+.grammar-academy{margin-bottom:8px;}
+.grammar-module{margin-bottom:26px;}
+.grammar-module:last-child{margin-bottom:0;}
+.grammar-module-title{
+  font-family:var(--font-display);font-weight:600;font-size:1.02rem;
+  margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);
+}
 
 /* ============ ACADEMY ============ */
 .academy-list{display:flex;flex-direction:column;gap:10px;}

@@ -22,10 +22,8 @@
   <nav class="tabs" id="tabNav">
     <button data-tab="home" class="active">Accueil</button>
     <button data-tab="parcours">Parcours</button>
-    <button data-tab="pron">Prononciation</button>
     <button data-tab="vocab">Vocabulaire</button>
     <button data-tab="gram">Grammaire</button>
-    <button data-tab="phrases">Phrases</button>
     <button data-tab="quiz">Quiz</button>
   </nav>
 </header>
@@ -41,8 +39,8 @@
         <text x="40" y="170" font-family="IBM Plex Mono" font-size="34" fill="var(--gold)" opacity="0.4">˝</text>
       </svg>
       <p class="eyebrow">Apprendre le hongrois depuis le français</p>
-      <h1>Öt modul, une seule langue à apprivoiser.</h1>
-      <p class="sub">Le hongrois ne ressemble à aucune langue que vous connaissez déjà — pas de cousinage latin, mais une mécanique très régulière une fois qu'on en tient les règles. Prononciation, vocabulaire, cas grammaticaux et phrases utiles : tout est ici.</p>
+      <h1>Un pont vers le hongrois, module après module.</h1>
+      <p class="sub">Le hongrois ne ressemble à aucune langue que vous connaissez déjà — pas de cousinage latin, mais une mécanique très régulière une fois qu'on en tient les règles. Le Parcours suit votre académie en ligne module par module ; Vocabulaire et Grammaire en tirent tout le contenu, prêt à réviser chaque jour.</p>
     </div>
 
     <div class="statrow">
@@ -63,10 +61,8 @@
     <p class="eyebrow">Modules</p>
     <div class="navcards">
       <div class="card navcard" data-goto="parcours"><span class="ic">◭</span><b>Parcours</b><span>Les modules de ton académie, dans l'ordre, par niveau</span></div>
-      <div class="card navcard" data-goto="pron"><span class="ic">◌́</span><b>Prononciation</b><span>Lettres, accents, longueur des voyelles</span></div>
-      <div class="card navcard" data-goto="vocab"><span class="ic">◈</span><b>Vocabulaire</b><span>Flashcards par thème avec répétition</span></div>
-      <div class="card navcard" data-goto="gram"><span class="ic">▤</span><b>Grammaire</b><span>Les cas hongrois, un à un</span></div>
-      <div class="card navcard" data-goto="phrases"><span class="ic">✎</span><b>Phrases</b><span>Dialogues du quotidien</span></div>
+      <div class="card navcard" data-goto="vocab"><span class="ic">◈</span><b>Vocabulaire</b><span>Flashcards par thème, avec test quotidien noté</span></div>
+      <div class="card navcard" data-goto="gram"><span class="ic">▤</span><b>Grammaire</b><span>Les règles de l'académie, plus les cas hongrois</span></div>
       <div class="card navcard" data-goto="quiz"><span class="ic">✓</span><b>Quiz</b><span>Testez ce que vous savez</span></div>
     </div>
   </section>
@@ -105,33 +101,9 @@
     <div class="level-groups" id="levelGroups"></div>
   </section>
 
-  <!-- ============ PRONUNCIATION ============ -->
-  <section class="view" id="view-pron">
-    <p class="eyebrow">Module 1</p>
-    <h1>Prononciation</h1>
-    <p class="lede">Le hongrois s'écrit avec l'alphabet latin, mais des digrammes et des accents lui donnent des sons que le français n'a pas. Bonne nouvelle : l'orthographe est presque parfaitement régulière — une lettre, un son, toujours.</p>
-
-    <div class="rule-box">
-      <b>L'accent tombe toujours sur la première syllabe</b> du mot, quelle que soit sa longueur — contrairement au français où l'accent tonique est peu marqué. Dites <span class="hu-letter">KAlocsa</span>, pas kaloCSA.
-    </div>
-
-    <h2 style="margin-top:32px;">Voyelles courtes et longues</h2>
-    <p class="lede">Chaque voyelle courte a une contrepartie longue, marquée par un accent. La longueur n'est pas décorative : elle peut changer le sens d'un mot entier.</p>
-    <div class="tablewrap">
-      <table class="pron" id="vowelTable"></table>
-    </div>
-    <div class="pairgrid" id="pairGrid"></div>
-
-    <h2 style="margin-top:36px;">Consonnes et digrammes</h2>
-    <p class="lede">Ces combinaisons de deux ou trois lettres notent chacune un seul son.</p>
-    <div class="tablewrap">
-      <table class="pron" id="consTable"></table>
-    </div>
-  </section>
-
   <!-- ============ VOCAB ============ -->
   <section class="view" id="view-vocab">
-    <p class="eyebrow">Module 2</p>
+    <p class="eyebrow">Module 1</p>
     <h1>Vocabulaire</h1>
     <p class="lede">Révisez par thème. Le mode <em>Cartes</em> utilise une répétition espacée : les mots que vous connaissez mal reviennent plus souvent.</p>
 
@@ -162,10 +134,15 @@
 
   <!-- ============ GRAMMAR ============ -->
   <section class="view" id="view-gram">
-    <p class="eyebrow">Module 3</p>
+    <p class="eyebrow">Module 2</p>
     <h1>Grammaire</h1>
     <p class="lede">Le hongrois n'utilise presque pas de prépositions : il colle des suffixes à la fin des mots. « Dans la maison » se dit en un seul mot. C'est déroutant au début, très logique ensuite.</p>
 
+    <p class="eyebrow" style="margin-top:28px;">Règles vues dans l'académie</p>
+    <p class="lede">Toutes les règles de grammaire rencontrées dans tes modules d'académie, réunies ici pour relire chaque jour — mises à jour automatiquement à chaque nouveau module.</p>
+    <div class="grammar-academy" id="grammarAcademyRules"></div>
+
+    <p class="eyebrow" style="margin-top:32px;">Grammaire de référence</p>
     <div class="rule-box">
       <b>L'harmonie vocalique</b> — chaque suffixe existe en 2 ou 3 formes selon les voyelles du mot. Mots « graves » (a, á, o, ó, u, ú) → suffixe en <span class="hu-letter">a/o/u</span>. Mots « aigus » (e, é, i, í) → suffixe en <span class="hu-letter">e</span>. Certains suffixes ont aussi une forme « arrondie » pour ö, ő, ü, ű. <br><span style="font-family:var(--font-mono);color:var(--text-muted);font-size:.85rem;">ház<b style="color:var(--accent)">ban</b> (dans la maison) — kert<b style="color:var(--accent)">ben</b> (dans le jardin) — tük<b style="color:var(--accent)">rön</b> (sur le miroir)</span>
     </div>
@@ -204,17 +181,9 @@
     </div>
   </section>
 
-  <!-- ============ PHRASES ============ -->
-  <section class="view" id="view-phrases">
-    <p class="eyebrow">Module 4</p>
-    <h1>Phrases</h1>
-    <p class="lede">Six situations courantes, avec traduction ligne à ligne. Écoutez, répétez, réutilisez.</p>
-    <div class="grid" id="dialogueList"></div>
-  </section>
-
   <!-- ============ QUIZ ============ -->
   <section class="view" id="view-quiz">
-    <p class="eyebrow">Module 5</p>
+    <p class="eyebrow">Module 3</p>
     <h1>Quiz</h1>
     <div id="quizArea"></div>
   </section>

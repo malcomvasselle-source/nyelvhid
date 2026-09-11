@@ -275,14 +275,6 @@ function goToVocabCat(catId){
   renderVocab();
 }
 function goToGrammar(){ goto('gram'); }
-function goToPron(){ goto('pron'); }
-function goToDialogue(idx){
-  goto('phrases');
-  setTimeout(()=>{
-    const cards = document.querySelectorAll('#dialogueList .dialogue');
-    if(cards[idx]) cards[idx].scrollIntoView({behavior:'smooth', block:'start'});
-  }, 60);
-}
 function goToQuizPreset(catId){
   goto('quiz');
   setTimeout(()=>{
@@ -295,47 +287,6 @@ function renderParcours(){
   renderAcademyLevelGroups();
   renderTimerUI();
   document.getElementById('timerToggle').onclick = ()=>toggleTimer('a1');
-}
-
-/* ============================================================
-   PRONUNCIATION
-   ============================================================ */
-function renderPron(){
-  const vt = document.getElementById('vowelTable');
-  vt.innerHTML = '<tr><th>Lettre</th><th>Son</th><th>Description</th><th>Exemple</th><th></th></tr>' +
-    VOWELS.map(v=>{
-      const word = v[3].split(' (')[0];
-      return `<tr>
-      <td class="hu-letter">${v[0]}</td>
-      <td style="font-family:var(--font-mono);color:var(--text-muted)">[${v[1]}]</td>
-      <td>${v[2]}</td>
-      <td>${v[3]}</td>
-      <td><button class="mini-speak" data-id="vowex-${v[0]}" data-say="${word}" title="Écouter">🔊</button></td>
-    </tr>`;}).join('');
-
-  document.getElementById('pairGrid').innerHTML = MINPAIRS.map((p,i)=>`
-    <div class="card paircard">
-      <div class="p1"><button class="mini-speak" data-id="pair-${i}-1" data-say="${p[0]}" title="Écouter">🔊</button> ${p[0]}</div>
-      <div class="vs">≠</div>
-      <div class="p2"><button class="mini-speak" data-id="pair-${i}-2" data-say="${p[1]}" title="Écouter">🔊</button> ${p[1]}</div>
-      <div class="mean">${p[2]}</div>
-    </div>`).join('');
-
-  const ct = document.getElementById('consTable');
-  ct.innerHTML = '<tr><th>Lettres</th><th>Son</th><th>Description</th><th>Exemple</th><th></th></tr>' +
-    CONS.map(c=>{
-      const word = c[3].split(' (')[0];
-      return `<tr>
-      <td class="hu-letter">${c[0]}</td>
-      <td style="font-family:var(--font-mono);color:var(--text-muted)">[${c[1]}]</td>
-      <td>${c[2]}</td>
-      <td>${c[3]}</td>
-      <td><button class="mini-speak" data-id="consex-${c[0]}" data-say="${word}" title="Écouter">🔊</button></td>
-    </tr>`;}).join('');
-
-  document.querySelectorAll('#view-pron .mini-speak').forEach(b=>{
-    b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say));
-  });
 }
 
 /* ============================================================
@@ -454,7 +405,42 @@ document.getElementById('vocabMode').addEventListener('click', e=>{
 /* ============================================================
    GRAMMAR
    ============================================================ */
+function renderGrammarAcademyRules(){
+  const el = document.getElementById('grammarAcademyRules');
+  if(!el) return;
+  // regroupe les règles de grammaire de chaque module de l'académie, par niveau puis par module,
+  // pour que toute nouvelle règle ajoutée à un module apparaisse ici automatiquement.
+  const groups = [];
+  ACADEMY_MODULES.forEach(m=>{
+    let g = groups.find(g=>g.level===m.level);
+    if(!g){ g = {level:m.level, modules:[]}; groups.push(g); }
+    g.modules.push(m);
+  });
+
+  el.innerHTML = groups.map(g=>`
+    <div class="level-group">
+      <div class="level-group-head">
+        <span class="level-group-badge">${g.level}</span>
+      </div>
+      ${g.modules.map(m=>`
+        <div class="grammar-module">
+          <p class="grammar-module-title">M${m.num} — ${m.title}</p>
+          ${m.rules.map(r=>{
+            const tableHtml = r.table ? `<table class="paradigm"><tr><th>hongrois</th><th>français</th></tr>${r.table.map(row=>`<tr><td class="hu">${row[0]}</td><td>${row[1]}</td></tr>`).join('')}</table>` : '';
+            const exHtml = r.examples ? r.examples.map(e=>`<div class="ex-line"><b>${e[0]}</b> — ${e[1]}</div>`).join('') : '';
+            return `<div class="academy-rule">
+              <b class="rt">${r.title}</b>
+              <p class="lede" style="font-size:.9rem;margin-bottom:8px;">${r.body}</p>
+              ${tableHtml}
+              ${exHtml}
+            </div>`;
+          }).join('')}
+        </div>`).join('')}
+    </div>`).join('');
+}
+
 function renderGrammar(){
+  renderGrammarAcademyRules();
   document.getElementById('caseGrid').innerHTML = CASES.map((c,i)=>`
     <div class="card case-card">
       <div class="suf">${c.suf}</div>
@@ -706,22 +692,6 @@ function renderAcademyLevelGroups(){
 }
 
 /* ============================================================
-   PHRASES
-   ============================================================ */
-function renderPhrases(){
-  document.getElementById('dialogueList').innerHTML = DIALOGUES.map((d,dIdx)=>`
-    <div class="card dialogue">
-      <h3>${d.title}</h3>
-      ${d.lines.map((l,lIdx)=>`
-        <div class="line">
-          <div class="line-spk"><button class="mini-speak" data-id="dlg-${dIdx}-${lIdx}" data-say="${l[0].replace(/"/g,'&quot;')}" title="Écouter">🔊</button><span class="hu">${l[0]}</span></div>
-          <span class="fr">${l[1]}</span>
-        </div>`).join('')}
-    </div>`).join('');
-  document.querySelectorAll('#view-phrases .mini-speak').forEach(b=>b.addEventListener('click',()=>playClip(b.dataset.id, b.dataset.say)));
-}
-
-/* ============================================================
    QUIZ
    ============================================================ */
 let quiz = {questions:[], idx:0, score:0, misses:[], active:false};
@@ -934,10 +904,8 @@ function renderQuizResult(){
    ============================================================ */
 renderHome();
 renderParcours();
-renderPron();
 renderChips();
 renderVocab();
 renderDailyTest();
 renderGrammar();
-renderPhrases();
 renderQuizSetup();
