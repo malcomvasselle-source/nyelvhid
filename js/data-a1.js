@@ -37,6 +37,7 @@ const VOCAB = [
     ['Tudsz angolul?','Sais-tu parler anglais ?','familier','academie_m4'],
     ['Érdekes!','Intéressant !','','academie_m4'],
     ['persze / természetesen','bien sûr','','academie_m4'],
+    ['Boldog születésnapot!','Joyeux anniversaire !','','academie_m4_2'],
   ]},
   {id:'nombres', label:'Nombres', words:[
     ['nulla','zéro',''],['egy','un',''],['kettő','deux','aussi « két » devant un nom'],
@@ -129,6 +130,13 @@ const VOCAB = [
     ['vagyunk','nous sommes','conjugaison de lenni','academie_m4'],
     ['vagytok','vous êtes','conjugaison de lenni','academie_m4'],
     ['vannak','ils/elles sont','conjugaison de lenni','academie_m4'],
+    ['örülni','se réjouir','','academie_m4_2'],
+    ['beszélni','parler','','academie_m4_2'],
+    ['tanítani','enseigner','','academie_m4_2'],
+    ['segíteni','aider','','academie_m4_2'],
+    ['küldeni','envoyer','','academie_m4_2'],
+    ['élni','vivre, habiter','','academie_m4_2'],
+    ['kívánni','souhaiter','','academie_m4_2'],
   ]},
   {id:'adjectifs', label:'Adjectifs courants', words:[
     ['nagy','grand',''],['kicsi','petit',''],['jó','bon',''],['rossz','mauvais',''],
@@ -208,6 +216,11 @@ const VOCAB = [
     ['szerb','serbe','','academie_m4'],
     ['ukrán','ukrainien(ne)','','academie_m4'],
     ['német','allemand(e)','','academie_m4'],
+    ['spanyolul','en espagnol','','academie_m4_2'],
+    ['olaszul','en italien','','academie_m4_2'],
+    ['finnül','en finnois','','academie_m4_2'],
+    ['portugálul','en portugais','','academie_m4_2'],
+    ['Görögország','la Grèce','','academie_m4_2'],
   ]},
   {id:'heure', label:'L’heure', words:[
     ['Hány óra van?','Quelle heure est-il ?',''],['Egy óra van.','Il est une heure.',''],
@@ -270,6 +283,7 @@ const VOCAB_MODULE_GROUPS = [
   {id:'academie_m2', level:'A1', num:'2', title:'alphabet, articles, nombres'},
   {id:'academie_m3', level:'A1', num:'3', title:'salutations, présentation, métiers'},
   {id:'academie_m4', level:'A1', num:'4', title:'être, métiers, nationalités'},
+  {id:'academie_m4_2', level:'A1', num:'4.2', title:'verbes réguliers, conjugaison'},
 ];
 
 /* ============================================================

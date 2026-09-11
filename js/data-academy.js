@@ -670,5 +670,138 @@ const ACADEMY_MODULES = [
         ['Köszi...','Merci...']
       ]
     }
+  },
+  {
+    id:'m4_2', num:'4.2', level:'A1',
+    title:'La conjugaison des verbes réguliers',
+    source:'Magyarize — Hungarian Mastercourse for beginners',
+    vocabCat:'academie_m4_2',
+    rules:[
+      {
+        title:'La conjugaison indéfinie au présent — verbes réguliers',
+        body:'La grande majorité des verbes hongrois se conjuguent au présent avec les mêmes six terminaisons, qui suivent l’harmonie vocalique (une forme en a/o/u, une en e/ö/ü). C’est la « conjugaison indéfinie », utilisée par défaut — on la retrouve avec tous les verbes qui ne prennent pas de complément d’objet direct défini.',
+        table:[
+          ['én','tanul-ok / beszél-ek / örül-ök'],
+          ['te','tanul-sz / beszél-sz / örül-sz'],
+          ['ő, Ön','tanul — / beszél — / örül —'],
+          ['mi','tanul-unk / beszél-ünk / örül-ünk'],
+          ['ti','tanul-tok / beszél-tek / örül-tök'],
+          ['ők, Önök','tanul-nak / beszél-nek / örül-nek']
+        ],
+        examples:[
+          ['Én is magyarul tanulok.','Moi aussi, j’apprends le hongrois.'],
+          ['Te milyen nyelven beszélsz?','Toi, quelle langue parles-tu ?'],
+          ['Nagyon örülök!','Je suis très content(e) !']
+        ]
+      },
+      {
+        title:'Les verbes en -ít ou à consonne finale double',
+        body:'Les verbes qui se terminent par -ít (tanít) ou par une consonne double (segít, küld) intercalent une voyelle de liaison (-a- ou -e-, selon l’harmonie vocalique) devant les terminaisons qui commencent par une consonne : -sz devient -asz/-esz, -tok/-tek/-tök devient -otok/-etek/-ötök, et -nak/-nek devient -anak/-enek. Aux autres personnes (én, mi), la terminaison ne change pas.',
+        table:[
+          ['én','tanít-ok / segít-ek / küld-ök'],
+          ['te','tanít-asz / segít-esz / küld-esz'],
+          ['ő, Ön','tanít — / segít — / küld —'],
+          ['mi','tanít-unk / segít-ünk / küld-ünk'],
+          ['ti','tanít-otok / segít-etek / küld-ötök'],
+          ['ők, Önök','tanít-anak / segít-enek / küld-enek']
+        ]
+      },
+      {
+        title:'mond — une petite exception',
+        body:'« Mond » (dire) suit presque la même règle que segít/küld, mais à la 2e personne du pluriel (ti), les deux formes « mondtok » et « mondotok » sont correctes — c’est une exception : ce verbe reste correct même sans la voyelle de liaison.',
+        examples:[
+          ['Mit mondtok?','Que dites-vous ? (familier, pluriel)'],
+          ['Mit mondotok?','Que dites-vous ? (variante, tout aussi correcte)']
+        ]
+      }
+    ],
+    exercises:[
+      {
+        type:'fill',
+        title:'4.7 — Complète avec la forme correcte',
+        items:[
+          {before:'Ti is ', after:' magyarul? (tud)', answer:'tudtok', note:'Vous aussi, vous savez le hongrois ?'},
+          {before:'A svájci férfi ', after:' angolul, németül és olaszul is. (beszél)', answer:'beszél', note:'L’homme suisse parle anglais, allemand et aussi italien.'},
+          {before:'Ők is ', after:' finnül? (tanul)', answer:'tanulnak', note:'Eux aussi, ils apprennent le finnois ?'},
+          {before:'Hol ', after:'? (él - ti)', answer:'éltek', note:'Où habitez-vous ?'},
+          {before:'Én is magyarul ', after:'. (tanul)', answer:'tanulok', note:'Moi aussi, j’apprends le hongrois.'},
+          {before:'Te milyen nyelven ', after:'? (beszél)', answer:'beszélsz', note:'Toi, quelle langue parles-tu ?'},
+          {before:'Most Krakkóban ', after:'. (él - én)', answer:'élek', note:'En ce moment, j’habite à Cracovie.'},
+          {before:'Ti hol ', after:'? (él)', answer:'éltek', note:'Où habitez-vous ?'},
+          {before:'Jó napot ', after:'! (kíván - én)', answer:'kívánok', note:'Je vous souhaite le bonjour !'},
+          {before:'Boldog születésnapot ', after:'! (kíván - mi)', answer:'kívánunk', note:'Nous vous souhaitons un joyeux anniversaire !'},
+          {before:'', after:' franciául. (beszél - ők)', answer:'Beszélnek', note:'Ils/elles parlent français.'},
+          {before:'Milyen nyelven ', after:'? (tanul - ők)', answer:'tanulnak', note:'Quelle langue apprennent-ils/elles ?'},
+          {before:'Mi is spanyolul ', after:'. (tanul)', answer:'tanulunk', note:'Nous aussi, nous apprenons l’espagnol.'},
+          {before:'', after:' angolul? (tud - Ön)', answer:'Tud', note:'Savez-vous l’anglais ? (formel)'},
+          {before:'Nagyon ', after:'! (örül - én)', answer:'örülök', note:'Je suis très content(e) !'},
+          {before:'Te is Párizsban ', after:'? (él)', answer:'élsz', note:'Toi aussi, tu habites à Paris ?'},
+          {before:'Nem ', after:' olaszul. (beszél - én)', answer:'beszélek', note:'Je ne parle pas italien.'},
+          {before:'Önök milyen nyelven ', after:'? (beszél)', answer:'beszélnek', note:'Quelle langue parlez-vous ? (formel, pluriel)'},
+          {before:'Németül és spanyolul ', after:'. (beszél - mi)', answer:'beszélünk', note:'Nous parlons allemand et espagnol.'},
+          {before:'Miért ', after:' magyarul? (tanul - ti)', answer:'tanultok', note:'Pourquoi apprenez-vous le hongrois ?'},
+          {before:'Mert Budapesten ', after:'. (él - mi)', answer:'élünk', note:'Parce que nous habitons à Budapest.'}
+        ]
+      },
+      {
+        type:'fill',
+        title:'4.8 — Conjugue à la bonne personne',
+        items:[
+          {before:'ő – mond :', after:'', answer:'mond', note:'il/elle dit'},
+          {before:'Önök – küld :', after:'', answer:'küldenek', note:'vous envoyez (formel, pluriel)'},
+          {before:'én – segít :', after:'', answer:'segítek', note:'j’aide'},
+          {before:'te – mond :', after:'', answer:'mondasz', note:'tu dis'},
+          {before:'ti – segít :', after:'', answer:'segítetek', note:'vous aidez (familier, pluriel)'},
+          {before:'mi – mond :', after:'', answer:'mondunk', note:'nous disons'},
+          {before:'te – küld :', after:'', answer:'küldesz', note:'tu envoies'},
+          {before:'Ön – mond :', after:'', answer:'mond', note:'vous dites (formel)'},
+          {before:'ők – segít :', after:'', answer:'segítenek', note:'ils/elles aident'},
+          {before:'ti – mond :', after:'', answer:'mondtok', note:'vous dites (familier) — « mondotok » est aussi correct, voir la règle d’exception'},
+          {before:'ők – mond :', after:'', answer:'mondanak', note:'ils/elles disent'},
+          {before:'ő – segít :', after:'', answer:'segít', note:'il/elle aide'}
+        ]
+      },
+      {
+        type:'fill',
+        title:'4.9 — Familier (te / ti)',
+        items:[
+          {before:'', after:' portugálul?', answer:'Tudsz', note:'tud – te : Parles-tu portugais ?'},
+          {before:'Atlantában ', after:'?', answer:'éltek', note:'él – ti : Vous habitez à Atlanta ?'},
+          {before:'Magyarul és angolul ', after:'?', answer:'beszélsz', note:'beszél – te : Tu parles hongrois et anglais ?'},
+          {before:'Miért ', after:' finnül?', answer:'tanulsz', note:'tanul – te : Pourquoi apprends-tu le finnois ?'},
+          {before:'Görögországban ', after:'?', answer:'élsz', note:'él – te : Tu habites en Grèce ?'},
+          {before:'Milyen nyelven ', after:' otthon?', answer:'beszéltek', note:'beszél – ti : Quelle langue parlez-vous à la maison ?'}
+        ]
+      },
+      {
+        type:'fill',
+        title:'4.9 — Formel (Ön / Önök)',
+        items:[
+          {before:'', after:' portugálul?', answer:'Tud', note:'tud – Ön : Parlez-vous portugais ?'},
+          {before:'Atlantában ', after:'?', answer:'élnek', note:'él – Önök : Vous habitez à Atlanta ?'},
+          {before:'Magyarul és angolul ', after:'?', answer:'beszél', note:'beszél – Ön : Vous parlez hongrois et anglais ?'},
+          {before:'Miért ', after:' finnül?', answer:'tanul', note:'tanul – Ön : Pourquoi apprenez-vous le finnois ?'},
+          {before:'Görögországban ', after:'?', answer:'él', note:'él – Ön : Vous habitez en Grèce ?'},
+          {before:'Milyen nyelven ', after:' otthon?', answer:'beszélnek', note:'beszél – Önök : Quelle langue parlez-vous à la maison ?'}
+        ]
+      }
+    ],
+    dialogue:{
+      title:'Nyelvek és lakóhely',
+      formal:[
+        ['Ön hol él?','Où habitez-vous ?'],
+        ['Budapesten élek, de tanulok angolul is.','J’habite à Budapest, mais j’apprends aussi l’anglais.'],
+        ['Milyen nyelven beszél otthon?','Quelle langue parlez-vous à la maison ?'],
+        ['Magyarul és németül beszélünk.','Nous parlons hongrois et allemand.'],
+        ['Nagyon örülök, hogy ezt hallom!','Je suis ravi(e) d’entendre cela !']
+      ],
+      informal:[
+        ['Te hol élsz?','Où habites-tu ?'],
+        ['Budapesten élek, de tanulok angolul is.','J’habite à Budapest, mais j’apprends aussi l’anglais.'],
+        ['Milyen nyelven beszélsz otthon?','Quelle langue parles-tu à la maison ?'],
+        ['Magyarul és németül beszélünk.','Nous parlons hongrois et allemand.'],
+        ['Nagyon örülök, hogy ezt hallom!','Je suis ravi(e) d’entendre cela !']
+      ]
+    }
   }
 ];
