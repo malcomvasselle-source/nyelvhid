@@ -97,6 +97,19 @@
       </div>
     </div>
 
+    <div class="card weekgoalcard">
+      <div class="timercard-top">
+        <div>
+          <p class="eyebrow" style="margin-bottom:2px;">Objectif hebdomadaire</p>
+          <h2 style="margin:0;">1 h/jour, 5 jours par semaine</h2>
+        </div>
+        <span class="due-pill" id="weekGoalPill"></span>
+      </div>
+      <div class="progressbar big"><div id="weekGoalFill"></div></div>
+      <div class="weekgoal-days" id="weekGoalDays"></div>
+      <p class="lede" id="weekGoalMsg" style="margin:12px 0 0;font-size:.85rem;"></p>
+    </div>
+
     <p class="eyebrow" style="margin-top:32px;">Modules de l'académie</p>
     <div class="level-groups" id="levelGroups"></div>
   </section>
@@ -105,7 +118,7 @@
   <section class="view" id="view-vocab">
     <p class="eyebrow">Module 1</p>
     <h1>Vocabulaire</h1>
-    <p class="lede">Révisez par thème ou module par module. Le mode <em>Cartes</em> utilise une répétition espacée : les mots que vous connaissez mal reviennent plus souvent.</p>
+    <p class="lede">Révisez par thème ou module par module. Le mode <em>Cartes</em> utilise une répétition espacée : les mots que vous connaissez mal reviennent plus souvent. Le badge <span class="freq-badge">★</span> repère les mots les plus fréquents du hongrois, à connaître en priorité.</p>
 
     <div class="card timercard dailytestcard">
       <div class="timercard-top">
@@ -175,6 +188,7 @@
 <script src="js/data-a1.js"></script>
 <script src="js/data-academy.js"></script>
 <script src="js/audio-manifest.js"></script>
+<script src="js/freq-data.js"></script>
 <script src="js/app.js"></script>
 <script src="js/assistant.js"></script>
 </body>

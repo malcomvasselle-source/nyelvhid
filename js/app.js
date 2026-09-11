@@ -1,10 +1,26 @@
 /* Moteur de rendu, état, interactions */
 
+// fréquence d'usage (js/freq-data.js) — même logique de normalisation que celle
+// utilisée pour générer FREQ_RANK, pour que les clés correspondent exactement.
+function freqLookupKey(hu){
+  let s = hu.trim();
+  if(s.includes('...')) return null; // fragment de suffixe grammatical, pas un mot
+  if(s.includes('/')) s = s.split('/')[0].trim();
+  s = s.replace(/[?!.,;:]+$/,'').trim();
+  if(/\s/.test(s)) return null; // phrase à plusieurs mots
+  return s.toLowerCase();
+}
+
 // flatten with stable ids
 const ALL_WORDS = [];
 VOCAB.forEach(cat=>{
   cat.words.forEach((w,i)=>{
-    ALL_WORDS.push({id:cat.id+'-'+i, cat:cat.id, catLabel:cat.label, hu:w[0], fr:w[1], note:w[2]||'', mod:w[3]||null});
+    const freqKey = freqLookupKey(w[0]);
+    const freqRank = freqKey ? (FREQ_RANK[freqKey] || null) : null;
+    ALL_WORDS.push({
+      id:cat.id+'-'+i, cat:cat.id, catLabel:cat.label, hu:w[0], fr:w[1], note:w[2]||'', mod:w[3]||null,
+      freqRank, essential: !!(freqRank && freqRank<=FREQ_BADGE_THRESHOLD)
+    });
   });
 });
 
@@ -69,6 +85,116 @@ function loadTimer(){
 function saveTimer(){ try{ localStorage.setItem(LS_TIMER, JSON.stringify(timer)); }catch(e){} }
 let timer = loadTimer();
 
+/* ============================================================
+   OBJECTIF HEBDOMADAIRE (1h/jour, 5 jours/semaine = 5h/semaine)
+   Journal du temps réellement passé, jour par jour, alimenté par
+   le même chrono que ci-dessus — indépendant du cumul par niveau.
+   ============================================================ */
+const LS_DAILY_TIME = 'nyelvhid_daily_time_v1';
+function loadDailyTime(){ try{ return JSON.parse(localStorage.getItem(LS_DAILY_TIME)) || {}; }catch(e){ return {}; } }
+function saveDailyTime(){ try{ localStorage.setItem(LS_DAILY_TIME, JSON.stringify(dailyTime)); }catch(e){} }
+let dailyTime = loadDailyTime(); // {"2026-09-11": secondes, ...}
+function addDailyTimeSeconds(sec){
+  if(!sec || sec<=0) return;
+  const d = todayStr();
+  dailyTime[d] = (dailyTime[d]||0) + sec;
+  saveDailyTime();
+}
+const DAY_GOAL_SECONDS = 3600;      // 1h/jour
+const WEEK_GOAL_DAYS = 5;
+const WEEK_GOAL_SECONDS = WEEK_GOAL_DAYS * DAY_GOAL_SECONDS; // 5h/semaine
+function isoWeekMonday(date){
+  const d = new Date(date);
+  const day = (d.getDay() + 6) % 7; // 0=lundi ... 6=dimanche
+  d.setDate(d.getDate() - day);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function weekDayKeys(){
+  const monday = isoWeekMonday(new Date());
+  const keys = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(monday);
+    d.setDate(monday.getDate()+i);
+    keys.push(d.toISOString().slice(0,10));
+  }
+  return keys;
+}
+function weekStats(){
+  const keys = weekDayKeys();
+  const today = todayStr();
+  let totalSec = 0, daysReached = 0;
+  const days = keys.map(k=>{
+    let sec = dailyTime[k] || 0;
+    if(k===today && timer.runningLevel && timer.runningSince){
+      sec += (Date.now() - timer.runningSince) / 1000;
+    }
+    totalSec += sec;
+    const reached = sec >= DAY_GOAL_SECONDS;
+    if(reached) daysReached++;
+    return {date:k, sec, reached};
+  });
+  return {days, totalSec, daysReached};
+}
+function weekTotalsMap(){
+  const map = {};
+  Object.keys(dailyTime).forEach(d=>{
+    const wk = isoWeekMonday(new Date(d+'T00:00:00')).toISOString().slice(0,10);
+    map[wk] = (map[wk]||0) + (dailyTime[d]||0);
+  });
+  return map;
+}
+function weeklyStreak(){
+  const map = weekTotalsMap();
+  const thisWeekKey = isoWeekMonday(new Date()).toISOString().slice(0,10);
+  let streak = (map[thisWeekKey]||0) >= WEEK_GOAL_SECONDS ? 1 : 0;
+  const cursor = new Date(thisWeekKey+'T00:00:00');
+  cursor.setDate(cursor.getDate()-7);
+  while(true){
+    const key = cursor.toISOString().slice(0,10);
+    if((map[key]||0) >= WEEK_GOAL_SECONDS){ streak++; cursor.setDate(cursor.getDate()-7); }
+    else break;
+  }
+  return streak;
+}
+function renderWeekGoal(){
+  const fill = document.getElementById('weekGoalFill');
+  const pill = document.getElementById('weekGoalPill');
+  const daysBox = document.getElementById('weekGoalDays');
+  const msg = document.getElementById('weekGoalMsg');
+  if(!fill) return;
+
+  const {days, totalSec, daysReached} = weekStats();
+  const hours = totalSec/3600;
+  const pct = Math.min(100, (totalSec/WEEK_GOAL_SECONDS)*100);
+  fill.style.width = pct+'%';
+
+  if(pill) pill.innerHTML = `<b>${hours.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})}</b> / ${WEEK_GOAL_DAYS} h`;
+
+  const dayLabels = ['L','M','M','J','V','S','D'];
+  const todayKey = todayStr();
+  if(daysBox){
+    daysBox.innerHTML = days.map((d,i)=>{
+      const cls = d.reached ? 'done' : (d.sec>0 ? 'partial' : '');
+      const isToday = d.date===todayKey;
+      return `<div class="weekgoal-day ${cls} ${isToday?'is-today':''}" title="${(d.sec/3600).toLocaleString('fr-FR',{maximumFractionDigits:1})} h">
+        <span class="wd-label">${dayLabels[i]}</span>
+        <span class="wd-dot">${d.reached?'✓':''}</span>
+      </div>`;
+    }).join('');
+  }
+  if(msg){
+    const streak = weeklyStreak();
+    const streakTxt = streak>=2 ? ` · 🔥 ${streak} semaines d'affilée` : '';
+    if(totalSec >= WEEK_GOAL_SECONDS){
+      msg.textContent = `🏆 Objectif atteint ! ${daysReached}/${WEEK_GOAL_DAYS} jours à ≥1h cette semaine${streakTxt}.`;
+    } else {
+      const remaining = Math.max(0, (WEEK_GOAL_SECONDS - totalSec)/3600);
+      msg.textContent = `${daysReached}/${WEEK_GOAL_DAYS} jours à ≥1h — encore ${remaining.toLocaleString('fr-FR',{maximumFractionDigits:1})} h pour atteindre l'objectif${streakTxt}.`;
+    }
+  }
+}
+
 const LS_ACADEMY_DONE = 'nyelvhid_academy_done_v1';
 function loadAcademyDone(){ try{ return JSON.parse(localStorage.getItem(LS_ACADEMY_DONE)) || {}; }catch(e){ return {}; } }
 function saveAcademyDone(){ try{ localStorage.setItem(LS_ACADEMY_DONE, JSON.stringify(academyDone)); }catch(e){} }
@@ -96,13 +222,17 @@ function bankedSeconds(levelId){
 function toggleTimer(levelId){
   if(timer.runningLevel === levelId){
     // stop / pause
+    const elapsed = timer.runningSince ? (Date.now() - timer.runningSince)/1000 : 0;
     timer.totals[levelId] = bankedSeconds(levelId);
     timer.runningSince = null;
     timer.runningLevel = null;
+    addDailyTimeSeconds(elapsed);
   } else {
     // switch or start: bank whatever was running for another level first
     if(timer.runningLevel){
+      const elapsed = timer.runningSince ? (Date.now() - timer.runningSince)/1000 : 0;
       timer.totals[timer.runningLevel] = bankedSeconds(timer.runningLevel);
+      addDailyTimeSeconds(elapsed);
     }
     timer.runningSince = Date.now();
     timer.runningLevel = levelId;
@@ -153,6 +283,8 @@ function renderTimerUI(){
     badge.hidden = !running;
     if(running && badgeText) badgeText.textContent = formatHMS(bankedSeconds(timer.runningLevel));
   }
+
+  renderWeekGoal();
 }
 setInterval(()=>{ if(timer.runningLevel) renderTimerUI(); }, 1000);
 document.getElementById('timerBadge').addEventListener('click', ()=>goto('parcours'));
@@ -205,6 +337,81 @@ function playClip(id, fallbackText){
   }
   speakFallback(fallbackText);
 }
+
+/* ============================================================
+   SHADOWING — s'enregistrer pour comparer sa prononciation
+   Rien n'est envoyé ni stocké : l'enregistrement reste en mémoire
+   du navigateur le temps de se réécouter, puis disparaît.
+   ============================================================ */
+let shadowStream = null;
+let shadowRecorder = null;
+let shadowChunks = [];
+let shadowActiveId = null;
+let shadowAutoStopTimer = null;
+
+function shadowSupported(){
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+}
+function updateShadowButtons(){
+  document.querySelectorAll('.shadow-btn').forEach(b=>{
+    const isActive = b.dataset.shadow === shadowActiveId;
+    b.classList.toggle('recording', isActive);
+    b.textContent = isActive ? '⏹' : '🎙️';
+    b.title = isActive ? 'Arrêter l’enregistrement' : 'S’enregistrer pour répéter';
+  });
+}
+async function startShadowRecording(id){
+  if(!shadowSupported()){
+    alert('L’enregistrement audio n’est pas disponible sur ce navigateur.');
+    return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    shadowStream = stream;
+    shadowChunks = [];
+    shadowRecorder = new MediaRecorder(stream);
+    shadowRecorder.ondataavailable = e=>{ if(e.data && e.data.size>0) shadowChunks.push(e.data); };
+    shadowRecorder.onstop = ()=>{
+      const blob = new Blob(shadowChunks, {type: shadowRecorder.mimeType || 'audio/webm'});
+      const url = URL.createObjectURL(blob);
+      renderShadowPlayback(id, url);
+      if(shadowStream){ shadowStream.getTracks().forEach(t=>t.stop()); shadowStream = null; }
+    };
+    shadowRecorder.start();
+    shadowActiveId = id;
+    updateShadowButtons();
+    clearTimeout(shadowAutoStopTimer);
+    shadowAutoStopTimer = setTimeout(()=>{ if(shadowActiveId===id) stopShadowRecording(); }, 8000); // filet de sécurité
+  }catch(e){
+    alert('Impossible d’accéder au micro (autorisation refusée ou indisponible).');
+  }
+}
+function stopShadowRecording(){
+  if(shadowRecorder && shadowRecorder.state !== 'inactive') shadowRecorder.stop();
+  shadowActiveId = null;
+  clearTimeout(shadowAutoStopTimer);
+  updateShadowButtons();
+}
+function renderShadowPlayback(id, url){
+  const box = document.getElementById(id);
+  if(!box) return;
+  box.hidden = false;
+  box.innerHTML = `<audio controls src="${url}"></audio><button class="shadow-clear" title="Effacer">✕</button>`;
+  const audioEl = box.querySelector('audio');
+  if(audioEl) audioEl.play().catch(()=>{});
+  const clearBtn = box.querySelector('.shadow-clear');
+  if(clearBtn) clearBtn.addEventListener('click', ()=>{ box.hidden = true; box.innerHTML=''; });
+}
+document.addEventListener('click', (e)=>{
+  const b = e.target.closest('.shadow-btn');
+  if(!b) return;
+  const id = b.dataset.shadow;
+  if(shadowActiveId){
+    stopShadowRecording(); // un clic pendant un enregistrement l'arrête toujours (le sien ou un autre)
+  } else {
+    startShadowRecording(id);
+  }
+});
 
 /* ============================================================
    NAV
@@ -381,7 +588,7 @@ function renderFlashzone(){
   const w = currentCard;
   zone.innerHTML = `
     <div class="flashcard" id="flashcardEl">
-      <span class="cat-tag">${w.catLabel}</span>
+      <span class="cat-tag">${w.catLabel}${w.essential?' <span class="freq-badge" title="Un des mots les plus fréquents du hongrois — à connaître en priorité">★ essentiel</span>':''}</span>
       <button class="mini-speak" id="flashSpeak" title="Écouter" style="position:absolute;top:10px;right:12px;font-size:1.15rem;">🔊</button>
       ${cardFlipped
         ? `<span class="back-label">Français</span><div class="word" style="font-size:1.6rem">${w.fr}</div>${w.note?`<div class="note">${w.note}</div>`:''}`
@@ -425,7 +632,7 @@ function renderList(){
     const dots = [0,1,2,3].map(i=>`<span class="${i<box?'on':''}"></span>`).join('');
     return `<div class="wordrow">
       <button class="mini-speak" data-id="${w.id}" data-say="${w.hu}" title="Écouter">🔊</button>
-      <span class="hu">${w.hu}</span>
+      <span class="hu">${w.hu}${w.essential?' <span class="freq-badge" title="Un des mots les plus fréquents du hongrois — à connaître en priorité">★</span>':''}</span>
       <span class="fr">${w.fr}${w.note?` <span style="opacity:.65">— ${w.note}</span>`:''}</span>
       <span class="box-ind">${dots}</span>
     </div>`;
@@ -526,11 +733,20 @@ function renderAcademyDialogue(m){
     </div>
     <div class="card dialogue">
       <h3>${m.dialogue.title}</h3>
-      ${lines.map((l,li)=>`
+      <p class="shadow-hint">🎙️ Clique sur le micro pour t'enregistrer en répétant la phrase, puis réécoute-toi.</p>
+      ${lines.map((l,li)=>{
+        const shadowId = `shadow-${m.id}-${mode}-${li}`;
+        return `
         <div class="line">
-          <div class="line-spk"><button class="mini-speak" data-id="acad-${m.id}-${mode}-${li}" data-say="${l[0].replace(/"/g,'&quot;')}" title="Écouter">🔊</button><span class="hu">${l[0]}</span></div>
+          <div class="line-spk">
+            <button class="mini-speak" data-id="acad-${m.id}-${mode}-${li}" data-say="${l[0].replace(/"/g,'&quot;')}" title="Écouter">🔊</button>
+            <span class="hu">${l[0]}</span>
+            <button class="shadow-btn" data-shadow="${shadowId}" title="S'enregistrer pour répéter">🎙️</button>
+          </div>
           <span class="fr">${l[1]}</span>
-        </div>`).join('')}
+          <div class="shadow-playback" id="${shadowId}" hidden></div>
+        </div>`;
+      }).join('')}
     </div>`;
   box.querySelector('.toggle2').addEventListener('click', e=>{
     const b = e.target.closest('button[data-mode]');
@@ -730,16 +946,29 @@ function buildQuestion(targetPool, distractPool, usedIds){
    parmi les mots à réviser aujourd'hui — répétition espacée)
    ============================================================ */
 function startDailyTest(){
+  const TOTAL = 10;
   const due = ALL_WORDS.filter(w=>isDue(w.id));
-  let pool = due.slice();
-  if(pool.length < 10){
-    const rest = ALL_WORDS.filter(w=>!pool.includes(w)).sort(()=>Math.random()-0.5);
+
+  // "difficulté désirable" : même quand il y a assez de mots dus pour remplir
+  // tout le test, on glisse volontairement 2-3 mots déjà bien maîtrisés
+  // (boîte >= 3) parmi eux — les retrouver de temps en temps, mélangés à des
+  // mots plus durs, consolide mieux la mémoire qu'un test 100% mots faciles à réviser.
+  const known = ALL_WORDS.filter(w=>!isDue(w.id) && wordState(w.id).box>=3);
+  const knownSlots = due.length > 3 ? Math.min(3, known.length) : 0;
+
+  const duePicks = due.slice().sort(()=>Math.random()-0.5).slice(0, TOTAL - knownSlots);
+  const knownPicks = known.slice().sort(()=>Math.random()-0.5).slice(0, knownSlots);
+  let pool = duePicks.concat(knownPicks);
+
+  if(pool.length < TOTAL){
+    const already = new Set(pool.map(w=>w.id));
+    const rest = ALL_WORDS.filter(w=>!already.has(w.id)).sort(()=>Math.random()-0.5);
     pool = pool.concat(rest);
   }
-  const n = Math.min(10, pool.length);
-  const chosen = pool.slice(0, n);
+  pool = pool.slice(0, Math.min(TOTAL, pool.length)).sort(()=>Math.random()-0.5);
+
   const used = new Set();
-  const qs = chosen.map(w=>buildQuestion([w], ALL_WORDS, used));
+  const qs = pool.map(w=>buildQuestion([w], ALL_WORDS, used));
   dailyTest = {questions:qs, idx:0, score:0, misses:[], active:true};
   renderDailyTest();
 }

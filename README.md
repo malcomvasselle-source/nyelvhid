@@ -11,10 +11,13 @@ js/data-a1.js          données : vocabulaire, prononciation, grammaire (cas, co
 js/data-academy.js      données : modules de l'académie en ligne (Module 4, puis les suivants au fur et à mesure)
 js/audio-manifest.js    table id → chemin de fichier .mp3
 audio/*.mp3             438 clips audio hongrois pré-enregistrés (un fichier par mot/phrase)
+js/freq-data.js          rang de fréquence des mots du vocabulaire (source : FrequencyWords/hermitdave, corpus OpenSubtitles) — alimente le badge ★ « mot essentiel »
 js/app.js               moteur de rendu, état (localStorage), interactions
+js/assistant.js          bulle flottante « poser une question » (appelle api/ask.js)
+api/ask.js               fonction serverless Vercel — assistant IA, voir la section dédiée plus bas
 ```
 
-Aucune dépendance, aucun build : c'est un site 100% statique. `index.html` charge les scripts dans l'ordre ci-dessus.
+Aucune dépendance, aucun build : c'est un site 100% statique (+ une fonction serverless pour l'assistant). `index.html` charge les scripts dans l'ordre ci-dessus.
 
 ## Développement local
 

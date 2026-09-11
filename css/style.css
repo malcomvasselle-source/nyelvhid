@@ -223,7 +223,8 @@ section.view.active{display:block;animation:fadein .25s ease;}
   display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   padding:30px 24px;cursor:pointer;gap:10px;position:relative;
 }
-.flashcard .cat-tag{position:absolute;top:14px;left:18px;font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.04em;text-transform:uppercase;}
+.flashcard .cat-tag{position:absolute;top:14px;left:18px;right:50px;font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.04em;text-transform:uppercase;text-align:left;line-height:1.5;}
+.freq-badge{color:var(--gold);font-weight:700;margin-left:6px;}
 .flashcard .word{font-family:var(--font-display);font-size:2.1rem;font-weight:600;}
 .flashcard .note{font-size:.82rem;color:var(--text-muted);max-width:32ch;}
 .flashcard .hint{font-size:.72rem;color:var(--text-muted);position:absolute;bottom:14px;}
@@ -243,6 +244,7 @@ section.view.active{display:block;animation:fadein .25s ease;}
 .wordrow{display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid var(--line);}
 .wordrow:last-child{border-bottom:none;}
 .wordrow .hu{font-family:var(--font-display);font-weight:600;min-width:130px;}
+.wordrow .hu .freq-badge{margin-left:3px;font-size:.85em;}
 .wordrow .fr{color:var(--text-muted);flex:1;font-size:.92rem;}
 .wordrow .box-ind{display:flex;gap:3px;}
 .wordrow .box-ind span{width:6px;height:6px;border-radius:50%;background:var(--line);}
@@ -302,11 +304,23 @@ table.paradigm tr:last-child td{border-bottom:none;}
 /* ============ DIALOGUES (dans les modules de l'académie) ============ */
 .dialogue{padding:20px 22px;}
 .dialogue h3{margin-bottom:14px;font-size:1.15rem;}
+.shadow-hint{font-size:.78rem;color:var(--text-muted);margin:-6px 0 14px;}
 .line{display:grid;grid-template-columns:1fr;gap:2px;padding:10px 0;border-bottom:1px dashed var(--line);}
 .line:last-child{border-bottom:none;}
 .line .hu{font-weight:600;}
 .line .fr{color:var(--text-muted);font-size:.88rem;}
 .line-spk{display:flex;align-items:center;gap:8px;}
+.shadow-btn{
+  border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:.95rem;
+  padding:3px 6px;border-radius:6px;margin-left:auto;flex-shrink:0;
+}
+.shadow-btn:hover{color:var(--accent);background:var(--surface-2);}
+.shadow-btn.recording{color:var(--danger);animation:pulse 1.1s ease-in-out infinite;}
+.shadow-playback{margin-top:8px;display:flex;align-items:center;gap:8px;}
+.shadow-playback[hidden]{display:none;}
+.shadow-playback audio{flex:1;height:32px;max-width:280px;}
+.shadow-clear{border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:.85rem;padding:2px 6px;flex-shrink:0;}
+.shadow-clear:hover{color:var(--danger);}
 
 /* ============ QUIZ ============ */
 .quiz-setup{padding:26px;text-align:center;}
@@ -373,6 +387,22 @@ table.paradigm tr:last-child td{border-bottom:none;}
 .progressbar.big{height:10px;position:relative;}
 .timer-progress-labels{display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-muted);margin-top:6px;font-family:var(--font-mono);}
 .progressbar .marker{position:absolute;top:-3px;width:2px;height:16px;background:var(--gold);}
+
+.weekgoalcard{padding:22px;margin-top:16px;}
+.weekgoal-days{display:flex;gap:6px;margin-top:16px;}
+.weekgoal-day{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:9px 4px;border-radius:12px;background:var(--surface-2);
+}
+.weekgoal-day.is-today{box-shadow:inset 0 0 0 2px var(--accent);}
+.weekgoal-day .wd-label{font-size:.68rem;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.03em;}
+.weekgoal-day .wd-dot{
+  width:20px;height:20px;border-radius:50%;border:2px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:700;color:transparent;
+}
+.weekgoal-day.partial .wd-dot{border-color:transparent;background:var(--gold);opacity:.5;}
+.weekgoal-day.done .wd-dot{border-color:transparent;background:var(--success);color:var(--success-bg);}
 
 .unit-link-btn{
   border:1px solid var(--line);background:var(--surface-2);color:var(--text);
