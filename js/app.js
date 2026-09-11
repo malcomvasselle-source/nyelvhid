@@ -70,6 +70,12 @@ function saveAcademyDone(){ try{ localStorage.setItem(LS_ACADEMY_DONE, JSON.stri
 let academyDone = loadAcademyDone();
 let academyDialogueMode = {}; // transient, per-session: {moduleId: 'formal'|'informal'}
 
+const LS_DAILY_TEST = 'nyelvhid_daily_test_v1';
+function loadDailyScores(){ try{ return JSON.parse(localStorage.getItem(LS_DAILY_TEST)) || {}; }catch(e){ return {}; } }
+function saveDailyScores(){ try{ localStorage.setItem(LS_DAILY_TEST, JSON.stringify(dailyScores)); }catch(e){} }
+let dailyScores = loadDailyScores(); // {"2026-09-11": {score:8, total:10}, ...}
+let dailyTest = {questions:[], idx:0, score:0, misses:[], active:false};
+
 function bankedSeconds(levelId){
   let s = timer.totals[levelId] || 0;
   if(timer.runningLevel === levelId && timer.runningSince){
@@ -720,20 +726,111 @@ function renderPhrases(){
    ============================================================ */
 let quiz = {questions:[], idx:0, score:0, misses:[], active:false};
 
-function buildQuestion(pool, usedIds){
+function buildQuestion(targetPool, distractPool, usedIds){
   let w;
   let tries=0;
-  do{ w = pool[Math.floor(Math.random()*pool.length)]; tries++; }
+  do{ w = targetPool[Math.floor(Math.random()*targetPool.length)]; tries++; }
   while(usedIds.has(w.id) && tries<40);
   usedIds.add(w.id);
   const dir = Math.random()<0.5 ? 'hu2fr' : 'fr2hu';
   const prompt = dir==='hu2fr' ? w.hu : w.fr;
   const correct = dir==='hu2fr' ? w.fr : w.hu;
-  const distractPool = pool.filter(x=>x.id!==w.id);
-  const shuffled = distractPool.slice().sort(()=>Math.random()-0.5).slice(0,3);
+  const distractCandidates = distractPool.filter(x=>x.id!==w.id);
+  const shuffled = distractCandidates.slice().sort(()=>Math.random()-0.5).slice(0,3);
   const options = shuffled.map(x=> dir==='hu2fr' ? x.fr : x.hu).concat([correct]).sort(()=>Math.random()-0.5);
   return {dir, prompt, correct, options, word:w};
 }
+
+/* ============================================================
+   TEST QUOTIDIEN (10 questions notées /10, tirées en priorité
+   parmi les mots à réviser aujourd'hui — répétition espacée)
+   ============================================================ */
+function startDailyTest(){
+  const due = ALL_WORDS.filter(w=>isDue(w.id));
+  let pool = due.slice();
+  if(pool.length < 10){
+    const rest = ALL_WORDS.filter(w=>!pool.includes(w)).sort(()=>Math.random()-0.5);
+    pool = pool.concat(rest);
+  }
+  const n = Math.min(10, pool.length);
+  const chosen = pool.slice(0, n);
+  const used = new Set();
+  const qs = chosen.map(w=>buildQuestion([w], ALL_WORDS, used));
+  dailyTest = {questions:qs, idx:0, score:0, misses:[], active:true};
+  renderDailyTest();
+}
+
+function finishDailyTest(){
+  const today = todayStr();
+  dailyScores[today] = {score:dailyTest.score, total:dailyTest.questions.length};
+  saveDailyScores();
+  dailyTest.active = false;
+  renderDailyTest();
+  const dueLbl = document.getElementById('statDue');
+  if(dueLbl) dueLbl.textContent = dueTodayCount(ALL_WORDS);
+}
+
+function renderDailyTest(){
+  const area = document.getElementById('dailyTestBody');
+  const btn = document.getElementById('dailyTestBtn');
+  const titleEl = document.getElementById('dailyTestTitle');
+  if(!area || !btn || !titleEl) return;
+
+  if(dailyTest.active){
+    btn.style.display = 'none';
+    titleEl.textContent = 'Test en cours…';
+    const q = dailyTest.questions[dailyTest.idx];
+    area.innerHTML = `
+      <div class="progressbar"><div style="width:${Math.round(dailyTest.idx/dailyTest.questions.length*100)}%"></div></div>
+      <div class="card qcard">
+        <div class="qdir">${q.dir==='hu2fr' ? 'Traduisez en français' : 'Traduisez en hongrois'}</div>
+        <div class="qword">${q.prompt}</div>
+        <div class="choices" id="dailyChoicesBox">
+          ${q.options.map(o=>`<button class="choice-btn" data-opt="${o.replace(/"/g,'&quot;')}">${o}</button>`).join('')}
+        </div>
+        <div class="qfoot" style="color:var(--text-muted);font-family:var(--font-mono);font-size:.8rem;">Question ${dailyTest.idx+1} / ${dailyTest.questions.length} · Score : ${dailyTest.score}</div>
+      </div>`;
+    document.querySelectorAll('#dailyChoicesBox .choice-btn').forEach(bt=>{
+      bt.addEventListener('click', ()=>{
+        const chosen = bt.dataset.opt;
+        const ok = chosen === q.correct;
+        document.querySelectorAll('#dailyChoicesBox .choice-btn').forEach(b=>{
+          b.disabled = true;
+          if(b.dataset.opt === q.correct) b.classList.add('correct');
+          else if(b===bt) b.classList.add('wrong');
+        });
+        if(ok) dailyTest.score++;
+        else dailyTest.misses.push(q);
+        markWord(q.word.id, ok); // le test quotidien alimente aussi la répétition espacée
+        playClip(q.word.id, q.word.hu);
+        setTimeout(()=>{
+          dailyTest.idx++;
+          if(dailyTest.idx < dailyTest.questions.length) renderDailyTest();
+          else finishDailyTest();
+        }, 850);
+      });
+    });
+    return;
+  }
+
+  btn.style.display = '';
+  const today = todayStr();
+  const todayScore = dailyScores[today];
+  btn.textContent = todayScore ? 'Refaire le test' : 'Commencer (10 questions)';
+  titleEl.textContent = todayScore ? `Aujourd’hui : ${todayScore.score}/${todayScore.total}` : 'Prêt·e pour le test d’aujourd’hui ?';
+
+  const days = Object.keys(dailyScores).sort().reverse().slice(0,30);
+  area.innerHTML = days.length ? `
+    <div class="dailytest-history">
+      ${days.map(d=>{
+        const s = dailyScores[d];
+        const dateLabel = new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+        const cls = s.score>=8?'sc-good':s.score>=5?'sc-mid':'sc-low';
+        return `<div class="dailytest-row"><span class="dailytest-date">${dateLabel}</span><span class="dailytest-score ${cls}">${s.score}/${s.total}</span></div>`;
+      }).join('')}
+    </div>` : `<p class="lede" style="margin:14px 0 0;">Fais ton premier test pour commencer ton historique.</p>`;
+}
+document.getElementById('dailyTestBtn').addEventListener('click', startDailyTest);
 
 function renderQuizSetup(){
   const area = document.getElementById('quizArea');
@@ -774,7 +871,7 @@ function renderQuizSetup(){
     const used = new Set();
     const n = Math.min(numQ, pool.length);
     const qs = [];
-    for(let i=0;i<n;i++) qs.push(buildQuestion(pool, used));
+    for(let i=0;i<n;i++) qs.push(buildQuestion(pool, pool, used));
     quiz = {questions:qs, idx:0, score:0, misses:[], active:true};
     renderQuizQuestion();
   });
@@ -840,6 +937,7 @@ renderParcours();
 renderPron();
 renderChips();
 renderVocab();
+renderDailyTest();
 renderGrammar();
 renderPhrases();
 renderQuizSetup();
