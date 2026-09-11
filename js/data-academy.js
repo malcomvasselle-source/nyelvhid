@@ -2,6 +2,258 @@
 
 const ACADEMY_MODULES = [
   {
+    id:'m2_1', num:'2.1',
+    title:'Alphabet et prononciation',
+    source:'Magyarize — Hungarian Mastercourse for beginners',
+    vocabCat:'academie_m2',
+    rules:[
+      {
+        title:'L’alphabet hongrois — magánhangzó et mássalhangzó',
+        body:'L’alphabet hongrois compte 44 lettres. On distingue les voyelles (magánhangzó) des consonnes (mássalhangzó), et pour les voyelles, les formes courtes (rövid) des formes longues (hosszú), marquées par un accent : a/á, e/é, i/í, o/ó, ö/ő, u/ú, ü/ű. Certaines consonnes s’écrivent avec deux ou trois lettres mais représentent un seul son (des « digraphes »).',
+        table:[
+          ['cs','comme le « tch » de « tchèque »'],
+          ['sz','comme le « s » français de « salade »'],
+          ['zs','comme le « j » français de « jour »'],
+          ['gy','un « d » mouillé, proche de « dj »'],
+          ['ly','se prononce exactement comme « j » (le son y)'],
+          ['ny','comme « gn » dans « montagne »'],
+          ['ty','un « t » mouillé, proche de « tch » doux'],
+          ['dzs','comme le « dj » anglais de « jungle »']
+        ]
+      },
+      {
+        title:'Les accents changent le sens du mot',
+        body:'Il est essentiel de bien respecter les accents : un mot peut avoir un sens complètement différent avec ou sans accent. Les consonnes doubles, elles, se prononcent plus longues/plus fortes qu’une consonne simple.',
+        examples:[
+          ['kar','le bras'],
+          ['kár','le dommage / quel dommage !'],
+          ['ver','frapper, battre (quelqu’un)'],
+          ['vér','le sang'],
+          ['toll','le stylo (consonne longue « ll »)'],
+          ['tol','pousser (consonne simple « l »)']
+        ]
+      },
+      {
+        title:'Épeler son prénom — betűzni',
+        body:'Chaque lettre a un nom (comme un alphabet radio), utile pour épeler son prénom, son nom de famille ou une adresse mail au téléphone.',
+        examples:[
+          ['Hogy írjuk?','Comment est-ce que ça s’écrit ?'],
+          ['Betűzd a nevedet.','Épelle ton prénom. (familier)'],
+          ['Betűzze a nevét.','Épelez votre nom. (formel)']
+        ]
+      }
+    ],
+    exercises:[
+      {
+        type:'fill',
+        title:'Complète avec le mot qui correspond (attention à l’accent)',
+        items:[
+          {before:'', after:' (le bras)', answer:'kar', note:'sans accent'},
+          {before:'', after:' (le dommage)', answer:'kár', note:'avec accent long'},
+          {before:'', after:' (frapper quelqu’un)', answer:'ver', note:'sans accent'},
+          {before:'', after:' (le sang)', answer:'vér', note:'avec accent long'},
+          {before:'', after:' (le stylo)', answer:'toll', note:'consonne longue « ll »'},
+          {before:'', after:' (pousser)', answer:'tol', note:'consonne simple « l »'}
+        ]
+      },
+      {
+        type:'translate',
+        title:'Traduis en hongrois',
+        items:[
+          {fr:'l’animal', hu:'állat'},
+          {fr:'le cheval', hu:'ló'},
+          {fr:'le trou', hu:'lyuk'},
+          {fr:'la glace', hu:'jég'},
+          {fr:'le concombre', hu:'uborka'},
+          {fr:'Comment est-ce que ça s’écrit ?', hu:'Hogy írjuk?'},
+          {fr:'Épelez votre nom, s’il vous plaît.', hu:'Betűzze a nevét, legyen szíves.'}
+        ]
+      }
+    ],
+    dialogue:{
+      title:'Épeler son nom',
+      formal:[
+        ['Jó napot! Hogy hívják?','Bonjour ! Comment vous appelez-vous ?'],
+        ['Kovács János vagyok.','Je suis János Kovács.'],
+        ['Hogy írjuk ezt?','Comment est-ce que ça s’écrit ?'],
+        ['Betűzze, legyen szíves.','Épelez, s’il vous plaît.'],
+        ['Ká, o, vé, á, csé — Kovács.','K, o, v, a, c — Kovács.'],
+        ['Köszönöm szépen.','Merci beaucoup.']
+      ],
+      informal:[
+        ['Szia! Hogy hívnak?','Salut ! Comment tu t’appelles ?'],
+        ['Smith John vagyok, angol vagyok.','Je suis John Smith, je suis anglais.'],
+        ['Hogy írjuk ezt?','Comment est-ce que ça s’écrit ?'],
+        ['Betűzd, légy szíves.','Épelle, s’il te plaît.'],
+        ['Es, em, i, té, há — Smith.','S, m, i, t, h — Smith.'],
+        ['Köszi!','Merci !']
+      ]
+    }
+  },
+  {
+    id:'m2_2', num:'2.2',
+    title:'L’article défini et indéfini',
+    source:'Magyarize — Hungarian Mastercourse for beginners',
+    vocabCat:'academie_m2',
+    rules:[
+      {
+        title:'L’article défini — a / az',
+        body:'« The » se traduit par « a » devant un mot qui commence par une consonne, et par « az » devant un mot qui commence par une voyelle. Contrairement au français, l’article ne s’accorde ni en genre ni en nombre.',
+        table:[['a','devant une consonne'],['az','devant une voyelle']],
+        examples:[
+          ['a cápa','le requin'],
+          ['a gyerek','l’enfant'],
+          ['az alma','la pomme'],
+          ['az óra','l’horloge / l’heure / le cours']
+        ]
+      },
+      {
+        title:'L’article indéfini — egy',
+        body:'« A / an » se traduit toujours par « egy », quel que soit le son initial du mot suivant — contrairement à l’article défini, il ne change jamais de forme.',
+        examples:[
+          ['egy csap','un robinet'],
+          ['egy üveg','une bouteille'],
+          ['egy férfi','un homme'],
+          ['egy elefánt','un éléphant']
+        ]
+      }
+    ],
+    exercises:[
+      {
+        type:'fill',
+        title:'Complète avec a ou az',
+        items:[
+          {before:'', after:' állat', answer:'az', note:'l’animal'},
+          {before:'', after:' toll', answer:'a', note:'le stylo'},
+          {before:'', after:' dal', answer:'a', note:'la chanson'},
+          {before:'', after:' uborka', answer:'az', note:'le concombre'},
+          {before:'', after:' férfi', answer:'a', note:'l’homme'},
+          {before:'', after:' zsiráf', answer:'a', note:'la girafe'},
+          {before:'', after:' váza', answer:'a', note:'le vase'}
+        ]
+      },
+      {
+        type:'translate',
+        title:'Traduis en hongrois (a, az, egy)',
+        items:[
+          {fr:'la maison', hu:'a ház'},
+          {fr:'une maison', hu:'egy ház'},
+          {fr:'le téléphone', hu:'a telefon'},
+          {fr:'un téléphone', hu:'egy telefon'},
+          {fr:'l’éléphant', hu:'az elefánt'},
+          {fr:'un éléphant', hu:'egy elefánt'},
+          {fr:'la salade', hu:'a saláta'},
+          {fr:'une salade', hu:'egy saláta'}
+        ]
+      }
+    ],
+    dialogue:{
+      title:'Chez le marchand — un ou le ?',
+      formal:[
+        ['Jó napot! Egy kávét kérek.','Bonjour ! Je voudrais un café, s’il vous plaît.'],
+        ['Tessék, itt a kávé.','Voici, voici le café.'],
+        ['És egy csokoládét is kérek.','Et je voudrais aussi un chocolat.'],
+        ['Az ott a csokoládé, tessék.','Voilà le chocolat, tenez.'],
+        ['Köszönöm szépen!','Merci beaucoup !']
+      ],
+      informal:[
+        ['Szia! Kérek egy kávét.','Salut ! Je voudrais un café.'],
+        ['Tessék, itt a kávé.','Tiens, voici le café.'],
+        ['És egy csokoládét is kérek.','Et je voudrais aussi un chocolat.'],
+        ['Az ott a csokoládé, tessék.','Voilà le chocolat, tiens.'],
+        ['Kösz szépen!','Merci beaucoup !']
+      ]
+    }
+  },
+  {
+    id:'m2_3', num:'2.3',
+    title:'Les nombres',
+    source:'Magyarize — Hungarian Mastercourse for beginners',
+    vocabCat:'academie_m2',
+    rules:[
+      {
+        title:'De 11 à 20 — le préfixe tizen-',
+        body:'Les nombres de 11 à 19 se construisent avec le préfixe « tizen- » (littéralement « dix-») suivi du chiffre des unités. 20 (húsz) est une exception, il ne suit pas ce schéma.',
+        table:[
+          ['tizenegy','onze (dix+un)'],['tizenkettő','douze'],['tizenhárom','treize'],
+          ['tizennégy','quatorze'],['tizenöt','quinze'],['tizenhat','seize'],
+          ['tizenhét','dix-sept'],['tizennyolc','dix-huit'],['tizenkilenc','dix-neuf'],['húsz','vingt']
+        ]
+      },
+      {
+        title:'Les dizaines et le préfixe huszon-',
+        body:'À partir de 21, on utilise le préfixe de la dizaine (« huszon- » pour 20, « harminc- » pour 30, etc.) suivi du chiffre des unités — exactement comme « vingt-et-un », « vingt-deux »... en français.',
+        table:[
+          ['húsz','vingt'],['harminc','trente'],['negyven','quarante'],['ötven','cinquante'],
+          ['hatvan','soixante'],['hetven','soixante-dix'],['nyolcvan','quatre-vingts'],
+          ['kilencven','quatre-vingt-dix'],['száz','cent']
+        ],
+        examples:[
+          ['huszonegy','vingt-et-un (húsz+egy)'],
+          ['huszonkettő','vingt-deux'],
+          ['harminckettő','trente-deux'],
+          ['negyvenöt','quarante-cinq']
+        ]
+      },
+      {
+        title:'kettő ou két ?',
+        body:'« Kettő » s’utilise seul — pour compter, réciter un numéro de téléphone, ou répondre à une question. « Két » s’utilise juste avant un nom, pour indiquer une quantité de deux éléments.',
+        examples:[
+          ['Kettő.','Deux. (en comptant, seul)'],
+          ['Két autó.','Deux voitures.'],
+          ['Két sör.','Deux bières.'],
+          ['Huszonkét éves vagyok.','J’ai vingt-deux ans.']
+        ]
+      }
+    ],
+    exercises:[
+      {
+        type:'fill',
+        title:'Complète avec kettő ou két',
+        items:[
+          {before:'', after:'.', answer:'kettő', note:'Deux. (seul, en comptant)'},
+          {before:'', after:' autó.', answer:'két', note:'Deux voitures. (devant un nom)'},
+          {before:'', after:' sör.', answer:'két', note:'Deux bières.'},
+          {before:'Huszon', after:' éves vagyok.', answer:'két', note:'J’ai vingt-deux ans.'}
+        ]
+      },
+      {
+        type:'translate',
+        title:'Écris le nombre en hongrois',
+        items:[
+          {fr:'13', hu:'tizenhárom'},
+          {fr:'16', hu:'tizenhat'},
+          {fr:'19', hu:'tizenkilenc'},
+          {fr:'21', hu:'huszonegy'},
+          {fr:'33', hu:'harminchárom'},
+          {fr:'59', hu:'ötvenkilenc'},
+          {fr:'61', hu:'hatvanegy'},
+          {fr:'73', hu:'hetvenhárom'},
+          {fr:'87', hu:'nyolcvanhét'},
+          {fr:'98', hu:'kilencvennyolc'},
+          {fr:'Quel est ton numéro de téléphone ?', hu:'Mi a telefonszámod?'}
+        ]
+      }
+    ],
+    dialogue:{
+      title:'Le numéro de téléphone',
+      formal:[
+        ['Mi a telefonszáma?','Quel est votre numéro de téléphone ?'],
+        ['A telefonszámom: hat, egy, három, kilenc, öt, kettő, nulla.','Mon numéro est : 6, 1, 3, 9, 5, 2, 0.'],
+        ['Elnézést, megismételné?','Excusez-moi, pouvez-vous répéter ?'],
+        ['Persze: hat, egy, három, kilenc, öt, kettő, nulla.','Bien sûr : 6, 1, 3, 9, 5, 2, 0.'],
+        ['Köszönöm szépen.','Merci beaucoup.']
+      ],
+      informal:[
+        ['Mi a telefonszámod?','Quel est ton numéro de téléphone ?'],
+        ['A telefonszámom: hat, egy, három, kilenc, öt, kettő, nulla.','Mon numéro est : 6, 1, 3, 9, 5, 2, 0.'],
+        ['Bocsi, megismételnéd?','Désolé, tu peux répéter ?'],
+        ['Persze: hat, egy, három, kilenc, öt, kettő, nulla.','Bien sûr : 6, 1, 3, 9, 5, 2, 0.'],
+        ['Kösz szépen.','Merci beaucoup.']
+      ]
+    }
+  },
+  {
     id:'m3_1', num:'3.1',
     title:'Salutations et petite conversation',
     source:'Magyarize — Hungarian Mastercourse for beginners',
