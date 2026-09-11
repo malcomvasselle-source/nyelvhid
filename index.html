@@ -22,7 +22,6 @@
   <nav class="tabs" id="tabNav">
     <button data-tab="home" class="active">Accueil</button>
     <button data-tab="parcours">Parcours</button>
-    <button data-tab="academy">Académie</button>
     <button data-tab="pron">Prononciation</button>
     <button data-tab="vocab">Vocabulaire</button>
     <button data-tab="gram">Grammaire</button>
@@ -63,8 +62,7 @@
 
     <p class="eyebrow">Modules</p>
     <div class="navcards">
-      <div class="card navcard" data-goto="parcours"><span class="ic">◭</span><b>Parcours</b><span>Niveaux CECRL, programme et minuteur</span></div>
-      <div class="card navcard" data-goto="academy"><span class="ic">▦</span><b>Académie</b><span>Modules de ton cours en ligne, dans l'ordre</span></div>
+      <div class="card navcard" data-goto="parcours"><span class="ic">◭</span><b>Parcours</b><span>Les modules de ton académie, dans l'ordre, par niveau</span></div>
       <div class="card navcard" data-goto="pron"><span class="ic">◌́</span><b>Prononciation</b><span>Lettres, accents, longueur des voyelles</span></div>
       <div class="card navcard" data-goto="vocab"><span class="ic">◈</span><b>Vocabulaire</b><span>Flashcards par thème avec répétition</span></div>
       <div class="card navcard" data-goto="gram"><span class="ic">▤</span><b>Grammaire</b><span>Les cas hongrois, un à un</span></div>
@@ -76,13 +74,13 @@
   <!-- ============ PARCOURS ============ -->
   <section class="view" id="view-parcours">
     <p class="eyebrow">Programme de formation</p>
-    <h1>Parcours CECRL</h1>
-    <p class="lede">Un objectif d’heures par niveau, un programme détaillé pour l’atteindre, et un minuteur pour suivre votre progression réelle.</p>
+    <h1>Parcours</h1>
+    <p class="lede">Les modules de ton académie en ligne (Magyarize — Hungarian Mastercourse for beginners), dans le même ordre que ton cours, regroupés par niveau. Envoie-moi la suite au fur et à mesure et je l'ajoute ici, à la bonne place.</p>
 
     <div class="ladder" id="levelLadder"></div>
 
     <div class="rule-box">
-      Les heures indiquées par unité ne sont pas un temps de lecture : c’est une estimation de <b>pratique active</b> nécessaire pour vraiment retenir le contenu — réécouter l’audio, répéter à voix haute, réviser en flashcards, refaire le quiz — répartie sur plusieurs séances courtes plutôt qu’en une fois.
+      Les heures indiquées ne sont pas un temps de lecture : c’est une estimation de <b>pratique active</b> nécessaire pour vraiment retenir le contenu — réécouter l’audio, répéter à voix haute, réviser en flashcards, refaire le quiz — répartie sur plusieurs séances courtes plutôt qu’en une fois.
     </div>
 
     <div class="card timercard">
@@ -103,16 +101,8 @@
       </div>
     </div>
 
-    <p class="eyebrow" style="margin-top:32px;">Programme A1 <span id="unitCountLabel"></span></p>
-    <div class="unit-list" id="unitList"></div>
-  </section>
-
-  <!-- ============ ACADEMY ============ -->
-  <section class="view" id="view-academy">
-    <p class="eyebrow">Ton cours en ligne</p>
-    <h1>Académie</h1>
-    <p class="lede">Les modules de ton académie en ligne (Magyarize — Hungarian Mastercourse for beginners), dans le même ordre que ton cours. Chaque module correspond à ce que tu étudies là-bas : envoie-moi la suite au fur et à mesure et je l'ajoute ici, à la suite.</p>
-    <div class="academy-list" id="academyList"></div>
+    <p class="eyebrow" style="margin-top:32px;">Modules de l'académie</p>
+    <div class="level-groups" id="levelGroups"></div>
   </section>
 
   <!-- ============ PRONUNCIATION ============ -->

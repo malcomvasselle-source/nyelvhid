@@ -2,7 +2,7 @@
 
 const ACADEMY_MODULES = [
   {
-    id:'m2_1', num:'2.1',
+    id:'m2_1', num:'2.1', level:'A1',
     title:'Alphabet et prononciation',
     source:'Magyarize — Hungarian Mastercourse for beginners',
     vocabCat:'academie_m2',
@@ -91,7 +91,7 @@ const ACADEMY_MODULES = [
     }
   },
   {
-    id:'m2_2', num:'2.2',
+    id:'m2_2', num:'2.2', level:'A1',
     title:'L’article défini et indéfini',
     source:'Magyarize — Hungarian Mastercourse for beginners',
     vocabCat:'academie_m2',
@@ -166,7 +166,7 @@ const ACADEMY_MODULES = [
     }
   },
   {
-    id:'m2_3', num:'2.3',
+    id:'m2_3', num:'2.3', level:'A1',
     title:'Les nombres',
     source:'Magyarize — Hungarian Mastercourse for beginners',
     vocabCat:'academie_m2',
@@ -254,7 +254,7 @@ const ACADEMY_MODULES = [
     }
   },
   {
-    id:'m3_1', num:'3.1',
+    id:'m3_1', num:'3.1', level:'A1',
     title:'Salutations et petite conversation',
     source:'Magyarize — Hungarian Mastercourse for beginners',
     vocabCat:'academie_m3',
@@ -335,7 +335,7 @@ const ACADEMY_MODULES = [
     }
   },
   {
-    id:'m3_2', num:'3.2',
+    id:'m3_2', num:'3.2', level:'A1',
     title:'Se présenter en détail',
     source:'Magyarize — Hungarian Mastercourse for beginners',
     vocabCat:'academie_m3',
@@ -415,7 +415,7 @@ const ACADEMY_MODULES = [
     }
   },
   {
-    id:'m3_3', num:'3.3',
+    id:'m3_3', num:'3.3', level:'A1',
     title:'Harmonie vocalique et suffixes de lieu / de langue',
     source:'Magyarize — Hungarian Mastercourse for beginners',
     vocabCat:'academie_m3',
@@ -487,7 +487,7 @@ const ACADEMY_MODULES = [
     }
   },
   {
-    id:'m3_4', num:'3.4',
+    id:'m3_4', num:'3.4', level:'A1',
     title:'Métiers et opinions',
     source:'Magyarize — Hungarian Mastercourse for beginners',
     vocabCat:'academie_m3',
@@ -568,7 +568,7 @@ const ACADEMY_MODULES = [
     }
   },
   {
-    id:'m4', num:4,
+    id:'m4', num:4, level:'A1',
     title:'Être — vagyok : conjugaison et négation',
     source:'Magyarize — Hungarian Mastercourse for beginners',
     vocabCat:'academie_m4',

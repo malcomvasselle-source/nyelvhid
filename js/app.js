@@ -57,18 +57,12 @@ function dueTodayCount(list){
    TIMER (temps passé par niveau CECRL)
    ============================================================ */
 const LS_TIMER = 'nyelvhid_timer_v1';
-const LS_UNITS_DONE = 'nyelvhid_units_done_v1';
 function loadTimer(){
   try{ return JSON.parse(localStorage.getItem(LS_TIMER)) || {totals:{}, runningSince:null, runningLevel:null}; }
   catch(e){ return {totals:{}, runningSince:null, runningLevel:null}; }
 }
 function saveTimer(){ try{ localStorage.setItem(LS_TIMER, JSON.stringify(timer)); }catch(e){} }
 let timer = loadTimer();
-
-function loadUnitsDone(){ try{ return JSON.parse(localStorage.getItem(LS_UNITS_DONE)) || {}; }catch(e){ return {}; } }
-function saveUnitsDone(){ try{ localStorage.setItem(LS_UNITS_DONE, JSON.stringify(unitsDone)); }catch(e){} }
-let unitsDone = loadUnitsDone();
-let storyAnswers = {}; // transient, per-session: {"uId-checkIdx": chosenOptionIndex}
 
 const LS_ACADEMY_DONE = 'nyelvhid_academy_done_v1';
 function loadAcademyDone(){ try{ return JSON.parse(localStorage.getItem(LS_ACADEMY_DONE)) || {}; }catch(e){ return {}; } }
@@ -290,113 +284,9 @@ function goToQuizPreset(catId){
     if(sel){ sel.value = catId; }
   }, 60);
 }
-function runUnitLink(link){
-  if(link.type==='vocab') goToVocabCat(link.cat);
-  else if(link.type==='grammar') goToGrammar();
-  else if(link.type==='pron') goToPron();
-  else if(link.type==='dialogue') goToDialogue(link.idx);
-  else if(link.type==='quiz') goToQuizPreset(link.cat);
-}
-
-function renderStorySection(u){
-  if(!u.story) return '';
-  const s = u.story;
-  const linesHtml = s.lines.map((l,li)=>`
-        <div class="line">
-          <div class="line-spk"><button class="mini-speak" data-id="story-${u.id}-${li}" data-say="${l[0].replace(/"/g,'&quot;')}" title="Écouter">🔊</button><span class="hu">${l[0]}</span></div>
-          <span class="fr">${l[1]}</span>
-        </div>`).join('');
-  const checksHtml = (s.checks||[]).map((c,ci)=>{
-    const key = `${u.id}-${ci}`;
-    const chosen = storyAnswers[key];
-    const optsHtml = c.options.map((o,oi)=>{
-      let cls = 'story-opt';
-      if(chosen!==undefined){
-        if(oi===c.correct) cls += ' correct';
-        else if(oi===chosen) cls += ' wrong';
-      }
-      return `<button class="${cls}" data-key="${key}" data-oi="${oi}" ${chosen!==undefined?'disabled':''}>${o}</button>`;
-    }).join('');
-    return `<div class="story-check">
-        <div class="story-check-q">${c.q}</div>
-        <div class="story-check-opts">${optsHtml}</div>
-      </div>`;
-  }).join('');
-  return `<div class="unit-story">
-        <p class="eyebrow" style="margin-top:0;">${s.title}</p>
-        <div class="story-lines">${linesHtml}</div>
-        ${checksHtml ? `<p class="eyebrow" style="margin-top:14px;">Compréhension</p><div class="story-checks">${checksHtml}</div>` : ''}
-      </div>`;
-}
-
-function renderUnitList(){
-  const total = CURRICULUM_A1.length;
-  const doneCount = CURRICULUM_A1.filter(u=>unitsDone[u.id]).length;
-  document.getElementById('unitCountLabel').textContent = `— ${doneCount}/${total} unités terminées`;
-
-  document.getElementById('unitList').innerHTML = CURRICULUM_A1.map((u,i)=>`
-    <div class="unit-card" id="unit-${u.id}">
-      <div class="unit-head" data-toggle="${u.id}">
-        <span class="unit-num">${String(i).padStart(2,'0')}</span>
-        <button class="unit-check ${unitsDone[u.id]?'done':''}" data-check="${u.id}" title="Marquer comme terminée">✓</button>
-        <div class="unit-head-text"><b>${u.title}</b></div>
-        <span class="unit-hours">${u.hours} h</span>
-        <span class="unit-caret">▸</span>
-      </div>
-      <div class="unit-body">
-        <ul class="unit-objectives">${u.objectives.map(o=>`<li>${o}</li>`).join('')}</ul>
-        <p class="unit-lesson">${u.lesson}</p>
-        ${renderStorySection(u)}
-        <div class="unit-links">${(u.links||[]).map((l,li)=>`<button class="unit-link-btn" data-unit="${u.id}" data-link="${li}">${l.label}</button>`).join('')}</div>
-      </div>
-    </div>`).join('');
-
-  document.querySelectorAll('.unit-head').forEach(h=>{
-    h.addEventListener('click', (e)=>{
-      if(e.target.closest('.unit-check')) return;
-      document.getElementById('unit-'+h.dataset.toggle).classList.toggle('open');
-    });
-  });
-  document.querySelectorAll('.unit-check').forEach(c=>{
-    c.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const id = c.dataset.check;
-      unitsDone[id] = !unitsDone[id];
-      saveUnitsDone();
-      renderUnitList();
-      document.getElementById('unit-'+id).classList.add('open');
-    });
-  });
-  document.querySelectorAll('.unit-story .mini-speak').forEach(b=>{
-    b.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      playClip(b.dataset.id, b.dataset.say);
-    });
-  });
-  document.querySelectorAll('.story-opt').forEach(b=>{
-    b.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const key = b.dataset.key;
-      storyAnswers[key] = parseInt(b.dataset.oi);
-      const unitId = key.split('-')[0];
-      renderUnitList();
-      const el = document.getElementById('unit-'+unitId);
-      if(el) el.classList.add('open');
-    });
-  });
-  document.querySelectorAll('.unit-link-btn').forEach(b=>{
-    b.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const unit = CURRICULUM_A1.find(u=>u.id===b.dataset.unit);
-      const link = unit.links[parseInt(b.dataset.link)];
-      runUnitLink(link);
-    });
-  });
-}
-
 function renderParcours(){
   renderLevelLadder();
-  renderUnitList();
+  renderAcademyLevelGroups();
   renderTimerUI();
   document.getElementById('timerToggle').onclick = ()=>toggleTimer('a1');
 }
@@ -719,17 +609,36 @@ function renderAcademyModuleBody(m){
     </div>`;
 }
 
-function renderAcademie(){
-  document.getElementById('academyList').innerHTML = ACADEMY_MODULES.map(m=>`
-    <div class="academy-module" id="academy-${m.id}">
-      <div class="academy-head" data-toggle="${m.id}">
-        <span class="academy-num">M${m.num}</span>
-        <button class="academy-check ${academyDone[m.id]?'done':''}" data-check="${m.id}" title="Marquer comme terminé">✓</button>
-        <div class="academy-head-text"><b>${m.title}</b><span>${m.source}</span></div>
-        <span class="academy-caret">▸</span>
+function renderAcademyLevelGroups(){
+  // regroupe les modules par niveau (dans l'ordre d'apparition, donc l'ordre du cours)
+  const groups = [];
+  ACADEMY_MODULES.forEach(m=>{
+    let g = groups.find(g=>g.level===m.level);
+    if(!g){ g = {level:m.level, modules:[]}; groups.push(g); }
+    g.modules.push(m);
+  });
+
+  document.getElementById('levelGroups').innerHTML = groups.map(g=>{
+    const doneCount = g.modules.filter(m=>academyDone[m.id]).length;
+    return `<div class="level-group">
+      <div class="level-group-head">
+        <span class="level-group-badge">${g.level}</span>
+        <span class="level-group-count">${doneCount}/${g.modules.length} modules terminés</span>
       </div>
-      <div class="academy-body">${renderAcademyModuleBody(m)}</div>
-    </div>`).join('');
+      <div class="academy-list">
+        ${g.modules.map(m=>`
+          <div class="academy-module" id="academy-${m.id}">
+            <div class="academy-head" data-toggle="${m.id}">
+              <span class="academy-num">M${m.num}</span>
+              <button class="academy-check ${academyDone[m.id]?'done':''}" data-check="${m.id}" title="Marquer comme terminé">✓</button>
+              <div class="academy-head-text"><b>${m.title}</b><span>${m.source}</span></div>
+              <span class="academy-caret">▸</span>
+            </div>
+            <div class="academy-body">${renderAcademyModuleBody(m)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
 
   document.querySelectorAll('.academy-head').forEach(h=>{
     h.addEventListener('click', (e)=>{
@@ -928,7 +837,6 @@ function renderQuizResult(){
    ============================================================ */
 renderHome();
 renderParcours();
-renderAcademie();
 renderPron();
 renderChips();
 renderVocab();
