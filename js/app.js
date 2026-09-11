@@ -4,9 +4,14 @@
 const ALL_WORDS = [];
 VOCAB.forEach(cat=>{
   cat.words.forEach((w,i)=>{
-    ALL_WORDS.push({id:cat.id+'-'+i, cat:cat.id, catLabel:cat.label, hu:w[0], fr:w[1], note:w[2]||''});
+    ALL_WORDS.push({id:cat.id+'-'+i, cat:cat.id, catLabel:cat.label, hu:w[0], fr:w[1], note:w[2]||'', mod:w[3]||null});
   });
 });
+
+function vocabModuleLabel(modId){
+  const g = VOCAB_MODULE_GROUPS.find(x=>x.id===modId);
+  return g ? `${g.level} · M${g.num} (${g.title})` : modId;
+}
 
 /* ============================================================
    STATE / STORAGE
@@ -273,8 +278,20 @@ function renderLevelLadder(){
 
 function goToVocabCat(catId){
   goto('vocab');
+  vocabView = 'theme';
   activeCat = catId;
   vocabMode = 'list';
+  renderVocabViewToggle();
+  renderChips();
+  document.querySelectorAll('#vocabMode button').forEach(x=>x.classList.toggle('active', x.dataset.mode==='list'));
+  renderVocab();
+}
+function goToVocabModule(modId){
+  goto('vocab');
+  vocabView = 'module';
+  activeCat = modId;
+  vocabMode = 'list';
+  renderVocabViewToggle();
   renderChips();
   document.querySelectorAll('#vocabMode button').forEach(x=>x.classList.toggle('active', x.dataset.mode==='list'));
   renderVocab();
@@ -298,18 +315,41 @@ function renderParcours(){
    VOCAB
    ============================================================ */
 let activeCat = 'all';
+let vocabView = 'theme'; // 'theme' | 'module'
 let vocabMode = 'cards';
 let currentCard = null;
 let cardFlipped = false;
 
 function currentWordPool(){
-  const base = activeCat==='all' ? ALL_WORDS : ALL_WORDS.filter(w=>w.cat===activeCat);
-  return base;
+  if(activeCat==='all') return ALL_WORDS;
+  if(vocabView==='module') return ALL_WORDS.filter(w=>w.mod===activeCat);
+  return ALL_WORDS.filter(w=>w.cat===activeCat);
+}
+
+function renderVocabViewToggle(){
+  const box = document.getElementById('vocabViewToggle');
+  if(!box) return;
+  box.innerHTML = `
+    <button data-view="theme" class="${vocabView==='theme'?'active':''}">Par thème</button>
+    <button data-view="module" class="${vocabView==='module'?'active':''}">Par module de l’académie</button>`;
+  box.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      if(vocabView===b.dataset.view) return;
+      vocabView = b.dataset.view;
+      activeCat = 'all';
+      currentCard = null;
+      renderVocabViewToggle();
+      renderChips();
+      renderVocab();
+    });
+  });
 }
 
 function renderChips(){
   const chips = document.getElementById('vocabChips');
-  const cats = [{id:'all', label:'Tous'}].concat(VOCAB.map(c=>({id:c.id,label:c.label})));
+  const cats = vocabView==='module'
+    ? [{id:'all', label:'Tous'}].concat(VOCAB_MODULE_GROUPS.map(g=>({id:g.id, label:vocabModuleLabel(g.id)})))
+    : [{id:'all', label:'Tous'}].concat(VOCAB.map(c=>({id:c.id,label:c.label})));
   chips.innerHTML = cats.map(c=>`<button class="chip ${c.id===activeCat?'active':''}" data-cat="${c.id}">${c.label}</button>`).join('');
   chips.querySelectorAll('.chip').forEach(ch=>{
     ch.addEventListener('click', ()=>{ activeCat = ch.dataset.cat; currentCard=null; renderChips(); renderVocab(); });
@@ -628,7 +668,7 @@ function renderAcademyLevelGroups(){
     });
   });
   document.querySelectorAll('[data-goto-vocab]').forEach(b=>{
-    b.addEventListener('click', ()=>goToVocabCat(b.dataset.gotoVocab));
+    b.addEventListener('click', ()=>goToVocabModule(b.dataset.gotoVocab));
   });
   document.querySelectorAll('.exo-check-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -878,6 +918,7 @@ function renderQuizResult(){
    ============================================================ */
 renderHome();
 renderParcours();
+renderVocabViewToggle();
 renderChips();
 renderVocab();
 renderDailyTest();
