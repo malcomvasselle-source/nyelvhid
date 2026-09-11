@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nyelvhíd</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brandbar">
+    <div class="brand">
+      <span class="mark">Nyelvh<span class="accentchar">í</span>d</span>
+      <span class="tagline">// magyar &lt;/&gt; français</span>
+    </div>
+    <button class="timerbadge" id="timerBadge" title="Aller au Parcours" hidden>
+      <span class="dot"></span><span id="timerBadgeText">00:00:00</span>
+    </button>
+    <button class="themebtn" id="themeToggle" aria-label="Changer de thème" title="Changer de thème">◐</button>
+  </div>
+  <nav class="tabs" id="tabNav">
+    <button data-tab="home" class="active">Accueil</button>
+    <button data-tab="parcours">Parcours</button>
+    <button data-tab="academy">Académie</button>
+    <button data-tab="pron">Prononciation</button>
+    <button data-tab="vocab">Vocabulaire</button>
+    <button data-tab="gram">Grammaire</button>
+    <button data-tab="phrases">Phrases</button>
+    <button data-tab="quiz">Quiz</button>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ HOME ============ -->
+  <section class="view active" id="view-home">
+    <div class="hero">
+      <svg class="motif" viewBox="0 0 200 200" aria-hidden="true">
+        <text x="10" y="60" font-family="IBM Plex Mono" font-size="40" fill="var(--gold)" opacity="0.5">˝</text>
+        <text x="90" y="110" font-family="IBM Plex Mono" font-size="60" fill="var(--accent)" opacity="0.35">́</text>
+        <text x="40" y="170" font-family="IBM Plex Mono" font-size="34" fill="var(--gold)" opacity="0.4">˝</text>
+      </svg>
+      <p class="eyebrow">Apprendre le hongrois depuis le français</p>
+      <h1>Öt modul, une seule langue à apprivoiser.</h1>
+      <p class="sub">Le hongrois ne ressemble à aucune langue que vous connaissez déjà — pas de cousinage latin, mais une mécanique très régulière une fois qu'on en tient les règles. Prononciation, vocabulaire, cas grammaticaux et phrases utiles : tout est ici.</p>
+    </div>
+
+    <div class="statrow">
+      <div class="card stat"><span class="num tnum" id="statLearned">0</span><span class="lab">mots maîtrisés</span></div>
+      <div class="card stat"><span class="num tnum" id="statDue">0</span><span class="lab">à réviser aujourd'hui</span></div>
+      <div class="card stat"><span class="num tnum" id="statStreak">0</span><span class="lab">jours de suite</span></div>
+    </div>
+
+    <p class="eyebrow">Mot du jour</p>
+    <div class="card wotd">
+      <button class="speak-btn" id="wotdSpeak" title="Écouter">🔊</button>
+      <div>
+        <div class="big" id="wotdHu">—</div>
+        <div class="fr" id="wotdFr">—</div>
+      </div>
+    </div>
+
+    <p class="eyebrow">Modules</p>
+    <div class="navcards">
+      <div class="card navcard" data-goto="parcours"><span class="ic">◭</span><b>Parcours</b><span>Niveaux CECRL, programme et minuteur</span></div>
+      <div class="card navcard" data-goto="academy"><span class="ic">▦</span><b>Académie</b><span>Modules de ton cours en ligne, dans l'ordre</span></div>
+      <div class="card navcard" data-goto="pron"><span class="ic">◌́</span><b>Prononciation</b><span>Lettres, accents, longueur des voyelles</span></div>
+      <div class="card navcard" data-goto="vocab"><span class="ic">◈</span><b>Vocabulaire</b><span>Flashcards par thème avec répétition</span></div>
+      <div class="card navcard" data-goto="gram"><span class="ic">▤</span><b>Grammaire</b><span>Les cas hongrois, un à un</span></div>
+      <div class="card navcard" data-goto="phrases"><span class="ic">✎</span><b>Phrases</b><span>Dialogues du quotidien</span></div>
+      <div class="card navcard" data-goto="quiz"><span class="ic">✓</span><b>Quiz</b><span>Testez ce que vous savez</span></div>
+    </div>
+  </section>
+
+  <!-- ============ PARCOURS ============ -->
+  <section class="view" id="view-parcours">
+    <p class="eyebrow">Programme de formation</p>
+    <h1>Parcours CECRL</h1>
+    <p class="lede">Un objectif d’heures par niveau, un programme détaillé pour l’atteindre, et un minuteur pour suivre votre progression réelle.</p>
+
+    <div class="ladder" id="levelLadder"></div>
+
+    <div class="rule-box">
+      Les heures indiquées par unité ne sont pas un temps de lecture : c’est une estimation de <b>pratique active</b> nécessaire pour vraiment retenir le contenu — réécouter l’audio, répéter à voix haute, réviser en flashcards, refaire le quiz — répartie sur plusieurs séances courtes plutôt qu’en une fois.
+    </div>
+
+    <div class="card timercard">
+      <div class="timercard-top">
+        <div>
+          <p class="eyebrow" style="margin-bottom:2px;">Niveau en cours</p>
+          <h2 id="timerLevelName" style="margin:0;">A1 — Faux débutant</h2>
+        </div>
+        <button class="bigbtn timerbtn" id="timerToggle">▶ Démarrer</button>
+      </div>
+      <div class="timer-readout tnum" id="timerReadout">00:00:00</div>
+      <div class="timer-progress">
+        <div class="progressbar big"><div id="timerProgressFill"></div><span class="marker" id="timerMinMarker"></span></div>
+        <div class="timer-progress-labels">
+          <span id="timerHoursDone">0,0 h</span>
+          <span id="timerHoursTarget">objectif 100–150 h</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="eyebrow" style="margin-top:32px;">Programme A1 <span id="unitCountLabel"></span></p>
+    <div class="unit-list" id="unitList"></div>
+  </section>
+
+  <!-- ============ ACADEMY ============ -->
+  <section class="view" id="view-academy">
+    <p class="eyebrow">Ton cours en ligne</p>
+    <h1>Académie</h1>
+    <p class="lede">Les modules de ton académie en ligne (Magyarize — Hungarian Mastercourse for beginners), dans le même ordre que ton cours. Chaque module correspond à ce que tu étudies là-bas : envoie-moi la suite au fur et à mesure et je l'ajoute ici, à la suite.</p>
+    <div class="academy-list" id="academyList"></div>
+  </section>
+
+  <!-- ============ PRONUNCIATION ============ -->
+  <section class="view" id="view-pron">
+    <p class="eyebrow">Module 1</p>
+    <h1>Prononciation</h1>
+    <p class="lede">Le hongrois s'écrit avec l'alphabet latin, mais des digrammes et des accents lui donnent des sons que le français n'a pas. Bonne nouvelle : l'orthographe est presque parfaitement régulière — une lettre, un son, toujours.</p>
+
+    <div class="rule-box">
+      <b>L'accent tombe toujours sur la première syllabe</b> du mot, quelle que soit sa longueur — contrairement au français où l'accent tonique est peu marqué. Dites <span class="hu-letter">KAlocsa</span>, pas kaloCSA.
+    </div>
+
+    <h2 style="margin-top:32px;">Voyelles courtes et longues</h2>
+    <p class="lede">Chaque voyelle courte a une contrepartie longue, marquée par un accent. La longueur n'est pas décorative : elle peut changer le sens d'un mot entier.</p>
+    <div class="tablewrap">
+      <table class="pron" id="vowelTable"></table>
+    </div>
+    <div class="pairgrid" id="pairGrid"></div>
+
+    <h2 style="margin-top:36px;">Consonnes et digrammes</h2>
+    <p class="lede">Ces combinaisons de deux ou trois lettres notent chacune un seul son.</p>
+    <div class="tablewrap">
+      <table class="pron" id="consTable"></table>
+    </div>
+  </section>
+
+  <!-- ============ VOCAB ============ -->
+  <section class="view" id="view-vocab">
+    <p class="eyebrow">Module 2</p>
+    <h1>Vocabulaire</h1>
+    <p class="lede">Révisez par thème. Le mode <em>Cartes</em> utilise une répétition espacée : les mots que vous connaissez mal reviennent plus souvent.</p>
+
+    <div class="chiprow" id="vocabChips"></div>
+
+    <div class="modebar">
+      <div class="segbtn-group" id="vocabMode">
+        <button data-mode="cards" class="active">Cartes</button>
+        <button data-mode="list">Liste</button>
+      </div>
+      <span class="due-pill" id="dueCount"></span>
+    </div>
+
+    <div id="cardsView" class="flashzone"></div>
+    <div id="listView" class="wordlist" style="display:none;"></div>
+  </section>
+
+  <!-- ============ GRAMMAR ============ -->
+  <section class="view" id="view-gram">
+    <p class="eyebrow">Module 3</p>
+    <h1>Grammaire</h1>
+    <p class="lede">Le hongrois n'utilise presque pas de prépositions : il colle des suffixes à la fin des mots. « Dans la maison » se dit en un seul mot. C'est déroutant au début, très logique ensuite.</p>
+
+    <div class="rule-box">
+      <b>L'harmonie vocalique</b> — chaque suffixe existe en 2 ou 3 formes selon les voyelles du mot. Mots « graves » (a, á, o, ó, u, ú) → suffixe en <span class="hu-letter">a/o/u</span>. Mots « aigus » (e, é, i, í) → suffixe en <span class="hu-letter">e</span>. Certains suffixes ont aussi une forme « arrondie » pour ö, ő, ü, ű. <br><span style="font-family:var(--font-mono);color:var(--text-muted);font-size:.85rem;">ház<b style="color:var(--accent)">ban</b> (dans la maison) — kert<b style="color:var(--accent)">ben</b> (dans le jardin) — tük<b style="color:var(--accent)">rön</b> (sur le miroir)</span>
+    </div>
+
+    <h2 style="margin-top:30px;">Les cas, un par un</h2>
+    <div class="case-grid" id="caseGrid"></div>
+
+    <h2 style="margin-top:36px;">Le pluriel et le possessif</h2>
+    <p class="lede">Le pluriel se forme avec <span class="hu-letter">-k</span> (+ voyelle de liaison si besoin). Le possessif s'attache aussi en suffixe — pas de « mon », « ta », « son » séparés.</p>
+    <div class="grid cols-2">
+      <div class="card pad">
+        <b>ház</b> — maison (mot grave)
+        <table class="paradigm" id="possHazTable"><tr><th>hongrois</th><th>français</th></tr></table>
+      </div>
+      <div class="card pad">
+        <b>kert</b> — jardin (mot aigu)
+        <table class="paradigm" id="possKertTable"><tr><th>hongrois</th><th>français</th></tr></table>
+      </div>
+    </div>
+
+    <h2 style="margin-top:36px;">Conjuguer un verbe régulier au présent</h2>
+    <p class="lede">Comme les suffixes de cas, les terminaisons du présent suivent l'harmonie vocalique : trois familles selon les voyelles du verbe.</p>
+    <div class="grid cols-3" id="verbPatternGrid"></div>
+
+    <h2 style="margin-top:36px;">Conjugaison définie / indéfinie</h2>
+    <p class="lede">Particularité du hongrois : le verbe change de forme selon que son objet est <em>défini</em> ou non. C'est le trait grammatical qui surprend le plus les francophones.</p>
+    <div class="toggle2" id="conjToggle">
+      <button data-c="indef" class="active">Indéfinie</button>
+      <button data-c="def">Définie</button>
+    </div>
+    <div class="card pad" id="conjBox"></div>
+
+    <h2 style="margin-top:36px;">Le verbe « être » — lenni</h2>
+    <div class="card pad">
+      <table class="paradigm" id="lenniTable"><tr><th>hongrois</th><th>français</th></tr></table>
+    </div>
+  </section>
+
+  <!-- ============ PHRASES ============ -->
+  <section class="view" id="view-phrases">
+    <p class="eyebrow">Module 4</p>
+    <h1>Phrases</h1>
+    <p class="lede">Six situations courantes, avec traduction ligne à ligne. Écoutez, répétez, réutilisez.</p>
+    <div class="grid" id="dialogueList"></div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="view" id="view-quiz">
+    <p class="eyebrow">Module 5</p>
+    <h1>Quiz</h1>
+    <div id="quizArea"></div>
+  </section>
+
+</main>
+
+<footer class="app">Nyelvhíd — un pont entre le français et le hongrois. Fait avec Claude.</footer>
+<script src="js/data-a1.js"></script>
+<script src="js/data-academy.js"></script>
+<script src="js/audio-manifest.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

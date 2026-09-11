@@ -1,0 +1,937 @@
+/* Moteur de rendu, état, interactions */
+
+// flatten with stable ids
+const ALL_WORDS = [];
+VOCAB.forEach(cat=>{
+  cat.words.forEach((w,i)=>{
+    ALL_WORDS.push({id:cat.id+'-'+i, cat:cat.id, catLabel:cat.label, hu:w[0], fr:w[1], note:w[2]||''});
+  });
+});
+
+/* ============================================================
+   STATE / STORAGE
+   ============================================================ */
+const LS_SRS = 'nyelvhid_srs_v1';
+const LS_STREAK = 'nyelvhid_streak_v1';
+const BOX_INTERVALS = [0, 1, 3, 7, 16]; // days
+
+function loadSRS(){ try{ return JSON.parse(localStorage.getItem(LS_SRS)) || {}; }catch(e){ return {}; } }
+function saveSRS(s){ try{ localStorage.setItem(LS_SRS, JSON.stringify(s)); }catch(e){} }
+let srs = loadSRS();
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function updateStreak(){
+  let s; try{ s = JSON.parse(localStorage.getItem(LS_STREAK)) || {count:0,last:null}; }catch(e){ s = {count:0,last:null}; }
+  const today = todayStr();
+  if(s.last === today){ /* already counted */ }
+  else{
+    const y = new Date(Date.now()-86400000).toISOString().slice(0,10);
+    s.count = (s.last === y) ? (s.count||0)+1 : 1;
+    s.last = today;
+    try{ localStorage.setItem(LS_STREAK, JSON.stringify(s)); }catch(e){}
+  }
+  return s.count||1;
+}
+
+function wordState(id){
+  return srs[id] || {box:0, due:0};
+}
+function isDue(id){
+  return wordState(id).due <= Date.now();
+}
+function markWord(id, known){
+  const st = wordState(id);
+  let box = known ? Math.min(st.box+1, BOX_INTERVALS.length-1) : 0;
+  const days = BOX_INTERVALS[box];
+  srs[id] = {box, due: Date.now() + days*86400000};
+  saveSRS(srs);
+}
+function learnedCount(){
+  return Object.values(srs).filter(s=>s.box>=2).length;
+}
+function dueTodayCount(list){
+  return list.filter(w=>isDue(w.id)).length;
+}
+
+/* ============================================================
+   TIMER (temps passé par niveau CECRL)
+   ============================================================ */
+const LS_TIMER = 'nyelvhid_timer_v1';
+const LS_UNITS_DONE = 'nyelvhid_units_done_v1';
+function loadTimer(){
+  try{ return JSON.parse(localStorage.getItem(LS_TIMER)) || {totals:{}, runningSince:null, runningLevel:null}; }
+  catch(e){ return {totals:{}, runningSince:null, runningLevel:null}; }
+}
+function saveTimer(){ try{ localStorage.setItem(LS_TIMER, JSON.stringify(timer)); }catch(e){} }
+let timer = loadTimer();
+
+function loadUnitsDone(){ try{ return JSON.parse(localStorage.getItem(LS_UNITS_DONE)) || {}; }catch(e){ return {}; } }
+function saveUnitsDone(){ try{ localStorage.setItem(LS_UNITS_DONE, JSON.stringify(unitsDone)); }catch(e){} }
+let unitsDone = loadUnitsDone();
+let storyAnswers = {}; // transient, per-session: {"uId-checkIdx": chosenOptionIndex}
+
+const LS_ACADEMY_DONE = 'nyelvhid_academy_done_v1';
+function loadAcademyDone(){ try{ return JSON.parse(localStorage.getItem(LS_ACADEMY_DONE)) || {}; }catch(e){ return {}; } }
+function saveAcademyDone(){ try{ localStorage.setItem(LS_ACADEMY_DONE, JSON.stringify(academyDone)); }catch(e){} }
+let academyDone = loadAcademyDone();
+let academyDialogueMode = {}; // transient, per-session: {moduleId: 'formal'|'informal'}
+
+function bankedSeconds(levelId){
+  let s = timer.totals[levelId] || 0;
+  if(timer.runningLevel === levelId && timer.runningSince){
+    s += (Date.now() - timer.runningSince) / 1000;
+  }
+  return s;
+}
+function toggleTimer(levelId){
+  if(timer.runningLevel === levelId){
+    // stop / pause
+    timer.totals[levelId] = bankedSeconds(levelId);
+    timer.runningSince = null;
+    timer.runningLevel = null;
+  } else {
+    // switch or start: bank whatever was running for another level first
+    if(timer.runningLevel){
+      timer.totals[timer.runningLevel] = bankedSeconds(timer.runningLevel);
+    }
+    timer.runningSince = Date.now();
+    timer.runningLevel = levelId;
+  }
+  saveTimer();
+  renderTimerUI();
+}
+function formatHMS(totalSeconds){
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = String(Math.floor(s/3600)).padStart(2,'0');
+  const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+  const sec = String(s%60).padStart(2,'0');
+  return `${h}:${m}:${sec}`;
+}
+function renderTimerUI(){
+  const CURRENT_LEVEL = 'a1';
+  const secs = bankedSeconds(CURRENT_LEVEL);
+  const hours = secs/3600;
+  const level = LEVELS.find(l=>l.id===CURRENT_LEVEL);
+
+  const readout = document.getElementById('timerReadout');
+  if(readout) readout.textContent = formatHMS(secs);
+
+  const btn = document.getElementById('timerToggle');
+  if(btn){
+    const running = timer.runningLevel === CURRENT_LEVEL;
+    btn.textContent = running ? '⏸ Mettre en pause' : (secs>0 ? '▶ Reprendre' : '▶ Démarrer');
+    btn.classList.toggle('running', running);
+  }
+
+  const fill = document.getElementById('timerProgressFill');
+  const marker = document.getElementById('timerMinMarker');
+  if(fill && level){
+    const pct = Math.min(100, (hours/level.hoursMax)*100);
+    fill.style.width = pct+'%';
+    if(marker) marker.style.left = ((level.hoursMin/level.hoursMax)*100)+'%';
+  }
+  const doneLbl = document.getElementById('timerHoursDone');
+  if(doneLbl) doneLbl.textContent = hours.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' h';
+  const targetLbl = document.getElementById('timerHoursTarget');
+  if(targetLbl && level) targetLbl.textContent = `objectif ${level.hoursMin}–${level.hoursMax} h`;
+
+  // header badge
+  const badge = document.getElementById('timerBadge');
+  const badgeText = document.getElementById('timerBadgeText');
+  const running = timer.runningLevel !== null;
+  if(badge){
+    badge.hidden = !running;
+    if(running && badgeText) badgeText.textContent = formatHMS(bankedSeconds(timer.runningLevel));
+  }
+}
+setInterval(()=>{ if(timer.runningLevel) renderTimerUI(); }, 1000);
+document.getElementById('timerBadge').addEventListener('click', ()=>goto('parcours'));
+
+/* ============================================================
+   SPEECH
+   Every Hungarian word and sentence used in the app was pre-recorded
+   offline with a real Hungarian speech engine (espeak-ng + the mbrola
+   hu1 voice) and embedded above in AUDIO. This sounds right regardless
+   of what's installed on the visitor's device. The browser's built-in
+   speechSynthesis is only used as a last resort, and only when a
+   genuine Hungarian voice is installed — never a French/English voice
+   misreading Hungarian spelling rules, which is the "toute pourrie"
+   result this replaces.
+   ============================================================ */
+let huVoice = null;
+function pickVoice(){
+  if(!('speechSynthesis' in window)) return;
+  const voices = window.speechSynthesis.getVoices();
+  huVoice = voices.find(v=>v.lang && v.lang.toLowerCase().startsWith('hu')) || null;
+}
+if('speechSynthesis' in window){
+  pickVoice();
+  window.speechSynthesis.onvoiceschanged = pickVoice;
+}
+function speakFallback(text){
+  if(!huVoice) return; // no genuine Hungarian voice on this device: stay silent rather than butcher it
+  if(!('speechSynthesis' in window)) return;
+  try{
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'hu-HU';
+    u.voice = huVoice;
+    u.rate = 0.92;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+const audioPlayer = new Audio();
+function playClip(id, fallbackText){
+  const src = AUDIO[id];
+  if(src){
+    try{
+      audioPlayer.pause();
+      audioPlayer.src = src;
+      audioPlayer.currentTime = 0;
+      const p = audioPlayer.play();
+      if(p && p.catch) p.catch(()=>{});
+      return;
+    }catch(e){}
+  }
+  speakFallback(fallbackText);
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+function goto(tab){
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('section.view').forEach(s=>s.classList.toggle('active', s.id==='view-'+tab));
+  window.scrollTo({top:0, behavior:'instant' in window ? 'instant':'auto'});
+}
+document.getElementById('tabNav').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-tab]');
+  if(b) goto(b.dataset.tab);
+});
+document.querySelectorAll('.navcard').forEach(c=>{
+  c.addEventListener('click', ()=>goto(c.dataset.goto));
+});
+
+/* ============================================================
+   THEME
+   ============================================================ */
+const root = document.documentElement;
+function applyTheme(t){
+  if(t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+  try{ localStorage.setItem('nyelvhid_theme', t||''); }catch(e){}
+}
+(function initTheme(){
+  let saved=''; try{ saved = localStorage.getItem('nyelvhid_theme')||''; }catch(e){}
+  if(saved) root.setAttribute('data-theme', saved);
+})();
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  const cur = root.getAttribute('data-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  let next;
+  if(!cur) next = prefersDark ? 'light':'dark';
+  else if(cur==='dark') next='light';
+  else next='dark';
+  applyTheme(next);
+});
+
+/* ============================================================
+   HOME
+   ============================================================ */
+function renderHome(){
+  document.getElementById('statLearned').textContent = learnedCount();
+  document.getElementById('statDue').textContent = dueTodayCount(ALL_WORDS);
+  document.getElementById('statStreak').textContent = updateStreak();
+
+  const dayIdx = Math.floor(Date.now()/86400000) % ALL_WORDS.length;
+  const w = ALL_WORDS[dayIdx];
+  document.getElementById('wotdHu').textContent = w.hu;
+  document.getElementById('wotdFr').textContent = w.fr;
+  document.getElementById('wotdSpeak').onclick = ()=>playClip(w.id, w.hu);
+}
+
+/* ============================================================
+   PARCOURS (niveaux, programme A1, minuteur)
+   ============================================================ */
+function renderLevelLadder(){
+  document.getElementById('levelLadder').innerHTML = LEVELS.map((l,i)=>{
+    const state = l.id==='a1' ? 'is-active' : 'is-future';
+    return `<div class="rung ${state}">
+      <span class="badge">${l.label}</span>
+      <div>
+        <div class="rung-name">${l.name}${l.id!=='a1' ? ' <span style=\"font-weight:400;color:var(--text-muted);font-size:.8rem;\">— à venir</span>' : ''}</div>
+        <div class="rung-cando">${l.cando}</div>
+      </div>
+      <div class="rung-hours">${l.hoursMin===l.hoursMax ? l.hoursMax+'+' : l.hoursMin+'–'+l.hoursMax} h</div>
+    </div>`;
+  }).join('');
+}
+
+function goToVocabCat(catId){
+  goto('vocab');
+  activeCat = catId;
+  vocabMode = 'list';
+  renderChips();
+  document.querySelectorAll('#vocabMode button').forEach(x=>x.classList.toggle('active', x.dataset.mode==='list'));
+  renderVocab();
+}
+function goToGrammar(){ goto('gram'); }
+function goToPron(){ goto('pron'); }
+function goToDialogue(idx){
+  goto('phrases');
+  setTimeout(()=>{
+    const cards = document.querySelectorAll('#dialogueList .dialogue');
+    if(cards[idx]) cards[idx].scrollIntoView({behavior:'smooth', block:'start'});
+  }, 60);
+}
+function goToQuizPreset(catId){
+  goto('quiz');
+  setTimeout(()=>{
+    const sel = document.getElementById('quizCat');
+    if(sel){ sel.value = catId; }
+  }, 60);
+}
+function runUnitLink(link){
+  if(link.type==='vocab') goToVocabCat(link.cat);
+  else if(link.type==='grammar') goToGrammar();
+  else if(link.type==='pron') goToPron();
+  else if(link.type==='dialogue') goToDialogue(link.idx);
+  else if(link.type==='quiz') goToQuizPreset(link.cat);
+}
+
+function renderStorySection(u){
+  if(!u.story) return '';
+  const s = u.story;
+  const linesHtml = s.lines.map((l,li)=>`
+        <div class="line">
+          <div class="line-spk"><button class="mini-speak" data-id="story-${u.id}-${li}" data-say="${l[0].replace(/"/g,'&quot;')}" title="Écouter">🔊</button><span class="hu">${l[0]}</span></div>
+          <span class="fr">${l[1]}</span>
+        </div>`).join('');
+  const checksHtml = (s.checks||[]).map((c,ci)=>{
+    const key = `${u.id}-${ci}`;
+    const chosen = storyAnswers[key];
+    const optsHtml = c.options.map((o,oi)=>{
+      let cls = 'story-opt';
+      if(chosen!==undefined){
+        if(oi===c.correct) cls += ' correct';
+        else if(oi===chosen) cls += ' wrong';
+      }
+      return `<button class="${cls}" data-key="${key}" data-oi="${oi}" ${chosen!==undefined?'disabled':''}>${o}</button>`;
+    }).join('');
+    return `<div class="story-check">
+        <div class="story-check-q">${c.q}</div>
+        <div class="story-check-opts">${optsHtml}</div>
+      </div>`;
+  }).join('');
+  return `<div class="unit-story">
+        <p class="eyebrow" style="margin-top:0;">${s.title}</p>
+        <div class="story-lines">${linesHtml}</div>
+        ${checksHtml ? `<p class="eyebrow" style="margin-top:14px;">Compréhension</p><div class="story-checks">${checksHtml}</div>` : ''}
+      </div>`;
+}
+
+function renderUnitList(){
+  const total = CURRICULUM_A1.length;
+  const doneCount = CURRICULUM_A1.filter(u=>unitsDone[u.id]).length;
+  document.getElementById('unitCountLabel').textContent = `— ${doneCount}/${total} unités terminées`;
+
+  document.getElementById('unitList').innerHTML = CURRICULUM_A1.map((u,i)=>`
+    <div class="unit-card" id="unit-${u.id}">
+      <div class="unit-head" data-toggle="${u.id}">
+        <span class="unit-num">${String(i).padStart(2,'0')}</span>
+        <button class="unit-check ${unitsDone[u.id]?'done':''}" data-check="${u.id}" title="Marquer comme terminée">✓</button>
+        <div class="unit-head-text"><b>${u.title}</b></div>
+        <span class="unit-hours">${u.hours} h</span>
+        <span class="unit-caret">▸</span>
+      </div>
+      <div class="unit-body">
+        <ul class="unit-objectives">${u.objectives.map(o=>`<li>${o}</li>`).join('')}</ul>
+        <p class="unit-lesson">${u.lesson}</p>
+        ${renderStorySection(u)}
+        <div class="unit-links">${(u.links||[]).map((l,li)=>`<button class="unit-link-btn" data-unit="${u.id}" data-link="${li}">${l.label}</button>`).join('')}</div>
+      </div>
+    </div>`).join('');
+
+  document.querySelectorAll('.unit-head').forEach(h=>{
+    h.addEventListener('click', (e)=>{
+      if(e.target.closest('.unit-check')) return;
+      document.getElementById('unit-'+h.dataset.toggle).classList.toggle('open');
+    });
+  });
+  document.querySelectorAll('.unit-check').forEach(c=>{
+    c.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = c.dataset.check;
+      unitsDone[id] = !unitsDone[id];
+      saveUnitsDone();
+      renderUnitList();
+      document.getElementById('unit-'+id).classList.add('open');
+    });
+  });
+  document.querySelectorAll('.unit-story .mini-speak').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      playClip(b.dataset.id, b.dataset.say);
+    });
+  });
+  document.querySelectorAll('.story-opt').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const key = b.dataset.key;
+      storyAnswers[key] = parseInt(b.dataset.oi);
+      const unitId = key.split('-')[0];
+      renderUnitList();
+      const el = document.getElementById('unit-'+unitId);
+      if(el) el.classList.add('open');
+    });
+  });
+  document.querySelectorAll('.unit-link-btn').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const unit = CURRICULUM_A1.find(u=>u.id===b.dataset.unit);
+      const link = unit.links[parseInt(b.dataset.link)];
+      runUnitLink(link);
+    });
+  });
+}
+
+function renderParcours(){
+  renderLevelLadder();
+  renderUnitList();
+  renderTimerUI();
+  document.getElementById('timerToggle').onclick = ()=>toggleTimer('a1');
+}
+
+/* ============================================================
+   PRONUNCIATION
+   ============================================================ */
+function renderPron(){
+  const vt = document.getElementById('vowelTable');
+  vt.innerHTML = '<tr><th>Lettre</th><th>Son</th><th>Description</th><th>Exemple</th><th></th></tr>' +
+    VOWELS.map(v=>{
+      const word = v[3].split(' (')[0];
+      return `<tr>
+      <td class="hu-letter">${v[0]}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-muted)">[${v[1]}]</td>
+      <td>${v[2]}</td>
+      <td>${v[3]}</td>
+      <td><button class="mini-speak" data-id="vowex-${v[0]}" data-say="${word}" title="Écouter">🔊</button></td>
+    </tr>`;}).join('');
+
+  document.getElementById('pairGrid').innerHTML = MINPAIRS.map((p,i)=>`
+    <div class="card paircard">
+      <div class="p1"><button class="mini-speak" data-id="pair-${i}-1" data-say="${p[0]}" title="Écouter">🔊</button> ${p[0]}</div>
+      <div class="vs">≠</div>
+      <div class="p2"><button class="mini-speak" data-id="pair-${i}-2" data-say="${p[1]}" title="Écouter">🔊</button> ${p[1]}</div>
+      <div class="mean">${p[2]}</div>
+    </div>`).join('');
+
+  const ct = document.getElementById('consTable');
+  ct.innerHTML = '<tr><th>Lettres</th><th>Son</th><th>Description</th><th>Exemple</th><th></th></tr>' +
+    CONS.map(c=>{
+      const word = c[3].split(' (')[0];
+      return `<tr>
+      <td class="hu-letter">${c[0]}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-muted)">[${c[1]}]</td>
+      <td>${c[2]}</td>
+      <td>${c[3]}</td>
+      <td><button class="mini-speak" data-id="consex-${c[0]}" data-say="${word}" title="Écouter">🔊</button></td>
+    </tr>`;}).join('');
+
+  document.querySelectorAll('#view-pron .mini-speak').forEach(b=>{
+    b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say));
+  });
+}
+
+/* ============================================================
+   VOCAB
+   ============================================================ */
+let activeCat = 'all';
+let vocabMode = 'cards';
+let currentCard = null;
+let cardFlipped = false;
+
+function currentWordPool(){
+  const base = activeCat==='all' ? ALL_WORDS : ALL_WORDS.filter(w=>w.cat===activeCat);
+  return base;
+}
+
+function renderChips(){
+  const chips = document.getElementById('vocabChips');
+  const cats = [{id:'all', label:'Tous'}].concat(VOCAB.map(c=>({id:c.id,label:c.label})));
+  chips.innerHTML = cats.map(c=>`<button class="chip ${c.id===activeCat?'active':''}" data-cat="${c.id}">${c.label}</button>`).join('');
+  chips.querySelectorAll('.chip').forEach(ch=>{
+    ch.addEventListener('click', ()=>{ activeCat = ch.dataset.cat; currentCard=null; renderChips(); renderVocab(); });
+  });
+}
+
+function pickCard(){
+  const pool = currentWordPool();
+  if(pool.length===0) return null;
+  const due = pool.filter(w=>isDue(w.id));
+  const source = due.length ? due : pool;
+  return source[Math.floor(Math.random()*source.length)];
+}
+
+function renderFlashzone(){
+  const zone = document.getElementById('cardsView');
+  const pool = currentWordPool();
+  const dueN = dueTodayCount(pool);
+  document.getElementById('dueCount').innerHTML = `<b>${dueN}</b> / ${pool.length} à réviser`;
+
+  if(!currentCard || !pool.find(w=>w.id===currentCard.id)){
+    currentCard = pickCard();
+    cardFlipped = false;
+  }
+  if(!currentCard){
+    zone.innerHTML = `<div class="emptystate"><div class="big-ic">◈</div>Aucun mot dans cette catégorie.</div>`;
+    return;
+  }
+  const w = currentCard;
+  zone.innerHTML = `
+    <div class="flashcard" id="flashcardEl">
+      <span class="cat-tag">${w.catLabel}</span>
+      <button class="mini-speak" id="flashSpeak" title="Écouter" style="position:absolute;top:10px;right:12px;font-size:1.15rem;">🔊</button>
+      ${cardFlipped
+        ? `<span class="back-label">Français</span><div class="word" style="font-size:1.6rem">${w.fr}</div>${w.note?`<div class="note">${w.note}</div>`:''}`
+        : `<div class="word">${w.hu}</div>`}
+      <span class="hint">${cardFlipped ? 'Cliquez pour revoir le mot' : 'Cliquez pour retourner la carte'}</span>
+    </div>
+    <div class="flash-controls">
+      <button class="no" id="btnNo">✕ Je ne savais pas</button>
+      <button class="yes" id="btnYes">✓ Je savais</button>
+    </div>
+  `;
+  document.getElementById('flashcardEl').addEventListener('click', ()=>{
+    cardFlipped = !cardFlipped;
+    renderFlashzone();
+  });
+  document.getElementById('flashSpeak').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    playClip(w.id, w.hu);
+  });
+  playClip(w.id, w.hu);
+  document.getElementById('btnNo').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    markWord(w.id, false);
+    currentCard = null; cardFlipped=false;
+    renderFlashzone();
+  });
+  document.getElementById('btnYes').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    markWord(w.id, true);
+    currentCard = null; cardFlipped=false;
+    renderFlashzone();
+  });
+}
+
+function renderList(){
+  const pool = currentWordPool();
+  const el = document.getElementById('listView');
+  if(pool.length===0){ el.innerHTML = `<div class="emptystate">Aucun mot.</div>`; return; }
+  el.innerHTML = pool.map(w=>{
+    const box = wordState(w.id).box;
+    const dots = [0,1,2,3].map(i=>`<span class="${i<box?'on':''}"></span>`).join('');
+    return `<div class="wordrow">
+      <button class="mini-speak" data-id="${w.id}" data-say="${w.hu}" title="Écouter">🔊</button>
+      <span class="hu">${w.hu}</span>
+      <span class="fr">${w.fr}${w.note?` <span style="opacity:.65">— ${w.note}</span>`:''}</span>
+      <span class="box-ind">${dots}</span>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.mini-speak').forEach(b=>b.addEventListener('click',()=>playClip(b.dataset.id, b.dataset.say)));
+}
+
+function renderVocab(){
+  document.getElementById('cardsView').style.display = vocabMode==='cards' ? 'flex':'none';
+  document.getElementById('listView').style.display = vocabMode==='list' ? 'flex':'none';
+  if(vocabMode==='cards') renderFlashzone(); else renderList();
+}
+
+document.getElementById('vocabMode').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-mode]');
+  if(!b) return;
+  vocabMode = b.dataset.mode;
+  document.querySelectorAll('#vocabMode button').forEach(x=>x.classList.toggle('active', x===b));
+  renderVocab();
+});
+
+/* ============================================================
+   GRAMMAR
+   ============================================================ */
+function renderGrammar(){
+  document.getElementById('caseGrid').innerHTML = CASES.map((c,i)=>`
+    <div class="card case-card">
+      <div class="suf">${c.suf}</div>
+      <div class="meaning">${c.name}</div>
+      <div class="ex"><button class="mini-speak" data-id="case-${i}" data-say="${c.ex}" title="Écouter">🔊</button> <b>${c.ex}</b><br>${c.tr}</div>
+    </div>`).join('');
+  document.getElementById('caseGrid').querySelectorAll('.mini-speak').forEach(b=>{
+    b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say));
+  });
+
+  document.getElementById('verbPatternGrid').innerHTML = VERB_PATTERNS.map((p,pi)=>`
+    <div class="card pad">
+      <b>${p.verb}</b> — ${p.meaning}
+      <div class="lede" style="font-size:.76rem;margin:2px 0 8px;">${p.group}</div>
+      <table class="paradigm">
+        <tr><th>hongrois</th><th>français</th></tr>
+        ${p.rows.map((r,ri)=>`<tr><td class="hu"><button class="mini-speak" data-id="verb-${pi}-${ri}" data-say="${r[0]}" title="Écouter">🔊</button> ${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
+      </table>
+    </div>`).join('');
+  document.getElementById('verbPatternGrid').querySelectorAll('.mini-speak').forEach(b=>{
+    b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say));
+  });
+
+  renderConj('indef');
+  document.getElementById('conjToggle').addEventListener('click', e=>{
+    const b = e.target.closest('button[data-c]');
+    if(!b) return;
+    document.querySelectorAll('#conjToggle button').forEach(x=>x.classList.toggle('active', x===b));
+    renderConj(b.dataset.c);
+  });
+
+  fillParadigm('possHazTable', 'poss-haz', POSS_HAZ);
+  fillParadigm('possKertTable', 'poss-kert', POSS_KERT);
+  fillParadigm('lenniTable', 'lenni', LENNI);
+}
+function fillParadigm(tableId, idPrefix, rows){
+  const t = document.getElementById(tableId);
+  t.insertAdjacentHTML('beforeend', rows.map((r,i)=>
+    `<tr><td class="hu"><button class="mini-speak" data-id="${idPrefix}-${i}" data-say="${r[0]}" title="Écouter">🔊</button> ${r[0]}</td><td>${r[1]}</td></tr>`
+  ).join(''));
+  t.querySelectorAll('.mini-speak').forEach(b=>b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say)));
+}
+function renderConj(kind){
+  const rows = CONJ[kind];
+  const label = kind==='indef' ? '« látok egy kutyát » — je vois un chien (non précis)' : '« látom a kutyát » — je vois le chien (précis)';
+  document.getElementById('conjBox').innerHTML = `
+    <p class="lede" style="margin-bottom:12px;">${label}</p>
+    <table class="paradigm">
+      <tr><th>hongrois</th><th>français</th></tr>
+      ${rows.map((r,i)=>`<tr><td class="hu"><button class="mini-speak" data-id="conj-${kind}-${i}" data-say="${r[0]}" title="Écouter">🔊</button> ${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
+    </table>`;
+  document.getElementById('conjBox').querySelectorAll('.mini-speak').forEach(b=>{
+    b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say));
+  });
+}
+
+/* ============================================================
+   ACADEMY (modules de l'académie en ligne suivie par l'utilisateur)
+   ============================================================ */
+function renderAcademyDialogue(m){
+  const mode = academyDialogueMode[m.id] || 'formal';
+  const lines = m.dialogue[mode];
+  const box = document.getElementById('academyDialogue-'+m.id);
+  if(!box) return;
+  box.innerHTML = `
+    <div class="toggle2" id="academyDlgToggle-${m.id}">
+      <button data-mode="formal" class="${mode==='formal'?'active':''}">Formel (Ön)</button>
+      <button data-mode="informal" class="${mode==='informal'?'active':''}">Familier (te)</button>
+    </div>
+    <div class="card dialogue">
+      <h3>${m.dialogue.title}</h3>
+      ${lines.map((l,li)=>`
+        <div class="line">
+          <div class="line-spk"><button class="mini-speak" data-id="acad-${m.id}-${mode}-${li}" data-say="${l[0].replace(/"/g,'&quot;')}" title="Écouter">🔊</button><span class="hu">${l[0]}</span></div>
+          <span class="fr">${l[1]}</span>
+        </div>`).join('')}
+    </div>`;
+  box.querySelector('.toggle2').addEventListener('click', e=>{
+    const b = e.target.closest('button[data-mode]');
+    if(!b) return;
+    academyDialogueMode[m.id] = b.dataset.mode;
+    renderAcademyDialogue(m);
+  });
+  box.querySelectorAll('.mini-speak').forEach(b=>b.addEventListener('click', ()=>playClip(b.dataset.id, b.dataset.say)));
+}
+
+function renderAcademyModuleBody(m){
+  const rulesHtml = m.rules.map(r=>{
+    const tableHtml = r.table ? `<table class="paradigm"><tr><th>hongrois</th><th>français</th></tr>${r.table.map((row,i)=>`<tr><td class="hu"><button class="mini-speak" data-id="acad-${m.id}-rule-${i}" data-say="${row[0]}" title="Écouter">🔊</button> ${row[0]}</td><td>${row[1]}</td></tr>`).join('')}</table>` : '';
+    const exHtml = r.examples ? r.examples.map((e,i)=>`<div class="ex-line"><button class="mini-speak" data-id="acad-${m.id}-ex-${i}" data-say="${e[0].replace(/"/g,'&quot;')}" title="Écouter">🔊</button> <b>${e[0]}</b> — ${e[1]}</div>`).join('') : '';
+    return `<div class="academy-rule">
+      <b class="rt">${r.title}</b>
+      <p class="lede" style="font-size:.9rem;margin-bottom:8px;">${r.body}</p>
+      ${tableHtml}
+      ${exHtml}
+    </div>`;
+  }).join('');
+
+  const pt = m.personTable;
+  const personTableHtml = pt ? `
+    <div class="academy-section">
+      <p class="academy-section-title">${pt.title}</p>
+      <p class="lede" style="font-size:.9rem;margin-bottom:10px;">${pt.body}</p>
+      <div class="person-table-wrap">
+      <table class="paradigm">
+        <tr><th></th>${pt.cols.map(c=>`<th>${c}</th>`).join('')}</tr>
+        ${pt.rows.map(row=>`<tr><td style="font-weight:600;white-space:nowrap;">${row[0]}</td><td class="hu">${row[1]}</td><td class="hu">${row[2]}</td><td class="hu">${row[3]}</td></tr>`).join('')}
+      </table>
+      </div>
+    </div>` : '';
+
+  const exercisesHtml = m.exercises.map((ex,exi)=>{
+    if(ex.type==='fill'){
+      return `<div class="academy-section">
+        <p class="academy-section-title">${ex.title}</p>
+        ${ex.items.map((it,ii)=>`
+          <div class="exo-item">
+            <div class="exo-prompt">${it.before}<b>____</b>${it.after} <span style="color:var(--text-muted);font-family:var(--font-body);">(${it.note})</span></div>
+            <div class="exo-row">
+              <input class="exo-input" type="text" data-ans="${it.answer}" placeholder="…">
+              <button class="exo-check-btn" data-mod="${m.id}" data-ex="${exi}" data-it="${ii}">Vérifier</button>
+            </div>
+            <div class="exo-feedback"></div>
+          </div>`).join('')}
+      </div>`;
+    }
+    if(ex.type==='translate'){
+      return `<div class="academy-section">
+        <p class="academy-section-title">${ex.title}</p>
+        ${ex.items.map(it=>`
+          <div class="exo-translate-item">
+            <div class="exo-translate-fr">${it.fr}</div>
+            <button class="exo-reveal-btn">Voir la réponse</button>
+            <div class="exo-answer">${it.hu}</div>
+          </div>`).join('')}
+      </div>`;
+    }
+    return '';
+  }).join('');
+
+  return `
+    <div class="academy-section">
+      <p class="academy-section-title">Grammaire</p>
+      ${rulesHtml}
+    </div>
+    ${personTableHtml}
+    <div class="academy-section academy-vocab-note">
+      <div>
+        <p class="academy-section-title" style="margin-bottom:4px;">Vocabulaire</p>
+        <p class="lede" style="margin:0;font-size:.9rem;">Métiers, nationalités et quelques phrases utiles — ajoutés à tes flashcards et à ton quiz.</p>
+      </div>
+      <button class="unit-link-btn" data-goto-vocab="${m.vocabCat}">Réviser ce vocabulaire</button>
+    </div>
+    ${exercisesHtml}
+    <div class="academy-section">
+      <p class="academy-section-title">Dialogue</p>
+      <div id="academyDialogue-${m.id}"></div>
+    </div>`;
+}
+
+function renderAcademie(){
+  document.getElementById('academyList').innerHTML = ACADEMY_MODULES.map(m=>`
+    <div class="academy-module" id="academy-${m.id}">
+      <div class="academy-head" data-toggle="${m.id}">
+        <span class="academy-num">M${m.num}</span>
+        <button class="academy-check ${academyDone[m.id]?'done':''}" data-check="${m.id}" title="Marquer comme terminé">✓</button>
+        <div class="academy-head-text"><b>${m.title}</b><span>${m.source}</span></div>
+        <span class="academy-caret">▸</span>
+      </div>
+      <div class="academy-body">${renderAcademyModuleBody(m)}</div>
+    </div>`).join('');
+
+  document.querySelectorAll('.academy-head').forEach(h=>{
+    h.addEventListener('click', (e)=>{
+      if(e.target.closest('.academy-check')) return;
+      const el = document.getElementById('academy-'+h.dataset.toggle);
+      const wasOpen = el.classList.contains('open');
+      el.classList.toggle('open');
+      if(!wasOpen){
+        const m = ACADEMY_MODULES.find(x=>x.id===h.dataset.toggle);
+        renderAcademyDialogue(m);
+      }
+    });
+  });
+  document.querySelectorAll('.academy-check').forEach(c=>{
+    c.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = c.dataset.check;
+      academyDone[id] = !academyDone[id];
+      saveAcademyDone();
+      c.classList.toggle('done', !!academyDone[id]);
+    });
+  });
+  document.querySelectorAll('[data-goto-vocab]').forEach(b=>{
+    b.addEventListener('click', ()=>goToVocabCat(b.dataset.gotoVocab));
+  });
+  document.querySelectorAll('.exo-check-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const item = btn.closest('.exo-item');
+      const input = item.querySelector('.exo-input');
+      const fb = item.querySelector('.exo-feedback');
+      const ans = input.dataset.ans;
+      const val = input.value.trim().toLowerCase();
+      const ok = val.length>0 && val === ans.toLowerCase();
+      input.classList.toggle('ok', ok);
+      input.classList.toggle('bad', !ok);
+      fb.textContent = ok ? '✓ Correct' : `✗ Réponse : ${ans}`;
+      fb.className = 'exo-feedback ' + (ok?'ok':'bad');
+    });
+  });
+  document.querySelectorAll('.exo-input').forEach(inp=>{
+    inp.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ e.preventDefault(); inp.closest('.exo-item').querySelector('.exo-check-btn').click(); }
+    });
+  });
+  document.querySelectorAll('.exo-reveal-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const ans = btn.closest('.exo-translate-item').querySelector('.exo-answer');
+      ans.classList.toggle('shown');
+      btn.textContent = ans.classList.contains('shown') ? 'Masquer la réponse' : 'Voir la réponse';
+    });
+  });
+
+  // ouvre par défaut le premier module non terminé, pour reprendre là où l'utilisateur s'était arrêté
+  if(ACADEMY_MODULES.length){
+    const firstTodo = ACADEMY_MODULES.find(m=>!academyDone[m.id]) || ACADEMY_MODULES[0];
+    const el = document.getElementById('academy-'+firstTodo.id);
+    if(el){ el.classList.add('open'); renderAcademyDialogue(firstTodo); }
+  }
+}
+
+/* ============================================================
+   PHRASES
+   ============================================================ */
+function renderPhrases(){
+  document.getElementById('dialogueList').innerHTML = DIALOGUES.map((d,dIdx)=>`
+    <div class="card dialogue">
+      <h3>${d.title}</h3>
+      ${d.lines.map((l,lIdx)=>`
+        <div class="line">
+          <div class="line-spk"><button class="mini-speak" data-id="dlg-${dIdx}-${lIdx}" data-say="${l[0].replace(/"/g,'&quot;')}" title="Écouter">🔊</button><span class="hu">${l[0]}</span></div>
+          <span class="fr">${l[1]}</span>
+        </div>`).join('')}
+    </div>`).join('');
+  document.querySelectorAll('#view-phrases .mini-speak').forEach(b=>b.addEventListener('click',()=>playClip(b.dataset.id, b.dataset.say)));
+}
+
+/* ============================================================
+   QUIZ
+   ============================================================ */
+let quiz = {questions:[], idx:0, score:0, misses:[], active:false};
+
+function buildQuestion(pool, usedIds){
+  let w;
+  let tries=0;
+  do{ w = pool[Math.floor(Math.random()*pool.length)]; tries++; }
+  while(usedIds.has(w.id) && tries<40);
+  usedIds.add(w.id);
+  const dir = Math.random()<0.5 ? 'hu2fr' : 'fr2hu';
+  const prompt = dir==='hu2fr' ? w.hu : w.fr;
+  const correct = dir==='hu2fr' ? w.fr : w.hu;
+  const distractPool = pool.filter(x=>x.id!==w.id);
+  const shuffled = distractPool.slice().sort(()=>Math.random()-0.5).slice(0,3);
+  const options = shuffled.map(x=> dir==='hu2fr' ? x.fr : x.hu).concat([correct]).sort(()=>Math.random()-0.5);
+  return {dir, prompt, correct, options, word:w};
+}
+
+function renderQuizSetup(){
+  const area = document.getElementById('quizArea');
+  const catOptions = [{id:'all',label:'Tous les thèmes'}].concat(VOCAB.map(c=>({id:c.id,label:c.label})));
+  area.innerHTML = `
+    <div class="card quiz-setup">
+      <p class="eyebrow">Configuration</p>
+      <h2 style="margin-bottom:4px;">Prêt à tester votre vocabulaire ?</h2>
+      <p class="lede" style="margin:0 auto 6px;">Questions à choix multiple, dans les deux sens.</p>
+      <div class="grid cols-2" style="max-width:520px;margin:18px auto;">
+        <div style="text-align:left;">
+          <label style="font-size:.78rem;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;">Thème</label>
+          <select id="quizCat" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);margin-top:6px;">
+            ${catOptions.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}
+          </select>
+        </div>
+        <div style="text-align:left;">
+          <label style="font-size:.78rem;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;">Nombre de questions</label>
+          <div class="num-choice" style="justify-content:flex-start;margin-top:6px;" id="quizNum">
+            ${[5,10,15].map((n,i)=>`<button class="chip ${i===0?'active':''}" data-n="${n}">${n}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+      <button class="bigbtn" id="startQuiz">Commencer</button>
+    </div>`;
+
+  let numQ = 5;
+  document.getElementById('quizNum').addEventListener('click', e=>{
+    const b = e.target.closest('button[data-n]');
+    if(!b) return;
+    numQ = parseInt(b.dataset.n);
+    document.querySelectorAll('#quizNum .chip').forEach(x=>x.classList.toggle('active', x===b));
+  });
+  document.getElementById('startQuiz').addEventListener('click', ()=>{
+    const catId = document.getElementById('quizCat').value;
+    const pool = catId==='all' ? ALL_WORDS : ALL_WORDS.filter(w=>w.cat===catId);
+    if(pool.length<4){ alert('Ce thème n’a pas assez de mots pour un quiz.'); return; }
+    const used = new Set();
+    const n = Math.min(numQ, pool.length);
+    const qs = [];
+    for(let i=0;i<n;i++) qs.push(buildQuestion(pool, used));
+    quiz = {questions:qs, idx:0, score:0, misses:[], active:true};
+    renderQuizQuestion();
+  });
+}
+
+function renderQuizQuestion(){
+  const area = document.getElementById('quizArea');
+  const q = quiz.questions[quiz.idx];
+  const pct = Math.round((quiz.idx)/quiz.questions.length*100);
+  area.innerHTML = `
+    <div class="progressbar"><div style="width:${pct}%"></div></div>
+    <div class="card qcard">
+      <div class="qdir">${q.dir==='hu2fr' ? 'Traduisez en français' : 'Traduisez en hongrois'}</div>
+      <div class="qword">${q.prompt}</div>
+      <div class="choices" id="choicesBox">
+        ${q.options.map(o=>`<button class="choice-btn" data-opt="${o.replace(/"/g,'&quot;')}">${o}</button>`).join('')}
+      </div>
+      <div class="qfoot" style="color:var(--text-muted);font-family:var(--font-mono);font-size:.8rem;">Question ${quiz.idx+1} / ${quiz.questions.length} · Score : ${quiz.score}</div>
+    </div>`;
+  document.querySelectorAll('#choicesBox .choice-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const chosen = btn.dataset.opt;
+      const ok = chosen === q.correct;
+      document.querySelectorAll('#choicesBox .choice-btn').forEach(b=>{
+        b.disabled = true;
+        if(b.dataset.opt === q.correct) b.classList.add('correct');
+        else if(b===btn) b.classList.add('wrong');
+      });
+      if(ok) quiz.score++;
+      else quiz.misses.push(q);
+      playClip(q.word.id, q.word.hu); // always reinforce the Hungarian pronunciation after answering
+      setTimeout(()=>{
+        quiz.idx++;
+        if(quiz.idx < quiz.questions.length) renderQuizQuestion();
+        else renderQuizResult();
+      }, 850);
+    });
+  });
+}
+
+function renderQuizResult(){
+  const area = document.getElementById('quizArea');
+  const total = quiz.questions.length;
+  area.innerHTML = `
+    <div class="card resultcard">
+      <p class="eyebrow">Résultat</p>
+      <div class="score tnum">${quiz.score}/${total}</div>
+      <p class="lede" style="margin:10px auto 0;">${quiz.score===total ? 'Parfait — kiváló !' : quiz.score/total>=0.7 ? 'Très bien joué.' : 'Continuez, ça vient.'}</p>
+      ${quiz.misses.length ? `<div class="reviewlist">
+        <b style="font-family:var(--font-body);font-size:.85rem;">À revoir</b>
+        ${quiz.misses.map(m=>`<div class="reviewrow"><span>${m.prompt}</span><span class="miss">${m.correct}</span></div>`).join('')}
+      </div>` : ''}
+      <button class="bigbtn" style="margin-top:24px;" id="retryQuiz">Nouveau quiz</button>
+    </div>`;
+  document.getElementById('retryQuiz').addEventListener('click', renderQuizSetup);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderHome();
+renderParcours();
+renderAcademie();
+renderPron();
+renderChips();
+renderVocab();
+renderGrammar();
+renderPhrases();
+renderQuizSetup();
