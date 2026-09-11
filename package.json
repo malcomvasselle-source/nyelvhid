@@ -1,0 +1,9 @@
+{
+  "name": "nyelvhid-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Nyelvhíd — application d'apprentissage du hongrois. Site statique + une fonction serverless (/api/ask) pour l'assistant IA.",
+  "engines": {
+    "node": ">=18"
+  }
+}

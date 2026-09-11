@@ -32,6 +32,19 @@ Ouvrir `js/data-academy.js` et ajouter un nouvel objet à la suite dans `ACADEMY
 
 Ajouter une entrée `[hongrois, français, note]` dans la catégorie concernée de `VOCAB` (`js/data-a1.js`), ou une nouvelle catégorie `{id, label, words:[...]}`. Le mot apparaît automatiquement dans les flashcards, la liste et le quiz.
 
+## Assistant (bulle flottante)
+
+Un petit assistant IA est disponible sur toutes les pages (bulle 💬 en bas à droite) : il répond aux questions ponctuelles ("comment dit-on... ?", vocabulaire manquant, etc.). Il repose sur :
+
+```
+api/ask.js    fonction serverless Vercel — appelle l'API Anthropic (Claude Haiku), clé API côté serveur uniquement
+js/assistant.js  logique de la bulle côté navigateur (ouverture, envoi, affichage des réponses)
+```
+
+**Réglage obligatoire avant que ça fonctionne en ligne :** sur le dashboard Vercel du projet → *Settings → Environment Variables*, ajouter une variable `ANTHROPIC_API_KEY` avec une clé API créée sur [console.anthropic.com](https://console.anthropic.com) (Settings → API Keys). Après l'ajout, redéployer (ou pousser un nouveau commit) pour que la variable soit prise en compte. Sans cette clé, la bulle affiche un message d'erreur mais n'empêche pas le reste de l'app de fonctionner.
+
+Le modèle utilisé (`claude-haiku-4-5-20251001`) est volontairement le modèle le plus économique d'Anthropic — le coût par question posée est de l'ordre du millième de centime.
+
 ## État du projet
 
 Voir l'audit du 1er septembre 2026 (feuille de route en lots — architecture, enrichissement du contenu, formats d'exercices, évaluations, vérification) pour la suite prévue.

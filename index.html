@@ -154,9 +154,28 @@
 </main>
 
 <footer class="app">Nyelvhíd — un pont entre le français et le hongrois. Fait avec Claude.</footer>
+
+<!-- ============ ASSISTANT (bulle flottante) ============ -->
+<button class="asknyelv-fab" id="asknyelvFab" title="Poser une question" aria-label="Poser une question">💬</button>
+<div class="asknyelv-panel" id="asknyelvPanel" hidden>
+  <div class="asknyelv-head">
+    <div class="asknyelv-head-text">
+      <b>Une question ?</b>
+      <span>Un mot, une phrase à traduire, une règle à vérifier</span>
+    </div>
+    <button class="asknyelv-close" id="asknyelvClose" aria-label="Fermer">✕</button>
+  </div>
+  <div class="asknyelv-msgs" id="asknyelvMsgs"></div>
+  <form class="asknyelv-form" id="asknyelvForm">
+    <textarea class="asknyelv-input" id="asknyelvInput" rows="1" placeholder="Comment dit-on « Le chien est blanc. » ?"></textarea>
+    <button class="asknyelv-send" id="asknyelvSend" type="submit">Envoyer</button>
+  </form>
+</div>
+
 <script src="js/data-a1.js"></script>
 <script src="js/data-academy.js"></script>
 <script src="js/audio-manifest.js"></script>
 <script src="js/app.js"></script>
+<script src="js/assistant.js"></script>
 </body>
 </html>

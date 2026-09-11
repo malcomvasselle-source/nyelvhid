@@ -259,6 +259,46 @@ table.paradigm tr:last-child td{border-bottom:none;}
 .toggle2 button{border:none;background:var(--surface);color:var(--text-muted);padding:7px 16px;font-size:.82rem;font-weight:600;cursor:pointer;}
 .toggle2 button.active{background:var(--accent);color:var(--accent-ink);}
 
+/* ============ ASSISTANT (bulle flottante) ============ */
+.asknyelv-fab{
+  position:fixed;right:18px;bottom:18px;z-index:80;
+  width:54px;height:54px;border-radius:50%;
+  background:var(--accent);color:var(--accent-ink);border:none;
+  font-size:1.5rem;line-height:1;cursor:pointer;
+  box-shadow:0 8px 22px rgba(0,0,0,.28);
+  display:flex;align-items:center;justify-content:center;
+}
+.asknyelv-fab:hover{filter:brightness(1.06);}
+.asknyelv-panel{
+  position:fixed;right:18px;bottom:84px;z-index:80;
+  width:min(380px, calc(100vw - 32px));
+  max-height:min(560px, calc(100vh - 130px));
+  background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  box-shadow:0 16px 40px rgba(0,0,0,.32);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.asknyelv-panel[hidden]{display:none;}
+.asknyelv-head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);}
+.asknyelv-head-text b{display:block;font-family:var(--font-body);font-size:.92rem;}
+.asknyelv-head-text span{display:block;font-size:.74rem;color:var(--text-muted);margin-top:1px;}
+.asknyelv-close{border:none;background:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;padding:2px 8px;line-height:1;}
+.asknyelv-close:hover{color:var(--text);}
+.asknyelv-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.asknyelv-empty{color:var(--text-muted);font-size:.84rem;text-align:center;margin:auto;padding:16px 8px;line-height:1.5;}
+.asknyelv-msg{max-width:88%;padding:9px 12px;border-radius:13px;font-size:.87rem;line-height:1.45;white-space:pre-wrap;}
+.asknyelv-msg.q{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px;}
+.asknyelv-msg.a{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-bottom-left-radius:4px;}
+.asknyelv-msg.err{align-self:flex-start;background:transparent;border:1px solid #c0392b;color:#c0392b;}
+.asknyelv-typing{align-self:flex-start;color:var(--text-muted);font-size:.82rem;font-style:italic;padding:2px 4px;}
+.asknyelv-form{display:flex;align-items:flex-end;gap:8px;padding:12px 14px;border-top:1px solid var(--line);}
+.asknyelv-input{flex:1;border:1px solid var(--line);border-radius:11px;padding:9px 11px;background:var(--surface);color:var(--text);font-size:.87rem;font-family:var(--font-body);resize:none;max-height:90px;}
+.asknyelv-send{border:none;background:var(--accent);color:var(--accent-ink);border-radius:11px;padding:0 15px;height:38px;font-size:.88rem;font-weight:600;cursor:pointer;flex-shrink:0;}
+.asknyelv-send:disabled{opacity:.5;cursor:default;}
+@media (max-width:480px){
+  .asknyelv-panel{right:12px;left:12px;width:auto;bottom:80px;}
+  .asknyelv-fab{right:14px;bottom:14px;}
+}
+
 /* ============ DIALOGUES (dans les modules de l'académie) ============ */
 .dialogue{padding:20px 22px;}
 .dialogue h3{margin-bottom:14px;font-size:1.15rem;}
