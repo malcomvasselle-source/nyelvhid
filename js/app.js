@@ -103,6 +103,7 @@ function addDailyTimeSeconds(sec){
 const DAY_GOAL_SECONDS = 3600;      // 1h/jour
 const WEEK_GOAL_DAYS = 5;
 const WEEK_GOAL_SECONDS = WEEK_GOAL_DAYS * DAY_GOAL_SECONDS; // 5h/semaine
+const LS_CONFETTI_WEEK = 'nyelvhid_confetti_week_v1'; // évite de refêter le même objectif hebdo plusieurs fois
 function isoWeekMonday(date){
   const d = new Date(date);
   const day = (d.getDay() + 6) % 7; // 0=lundi ... 6=dimanche
@@ -188,6 +189,12 @@ function renderWeekGoal(){
     const streakTxt = streak>=2 ? ` · 🔥 ${streak} semaines d'affilée` : '';
     if(totalSec >= WEEK_GOAL_SECONDS){
       msg.textContent = `🏆 Objectif atteint ! ${daysReached}/${WEEK_GOAL_DAYS} jours à ≥1h cette semaine${streakTxt}.`;
+      const wk = isoWeekMonday(new Date()).toISOString().slice(0,10);
+      let celebrated=''; try{ celebrated = localStorage.getItem(LS_CONFETTI_WEEK)||''; }catch(e){}
+      if(celebrated !== wk){
+        try{ localStorage.setItem(LS_CONFETTI_WEEK, wk); }catch(e){}
+        launchConfetti();
+      }
     } else {
       const remaining = Math.max(0, (WEEK_GOAL_SECONDS - totalSec)/3600);
       msg.textContent = `${daysReached}/${WEEK_GOAL_DAYS} jours à ≥1h — encore ${remaining.toLocaleString('fr-FR',{maximumFractionDigits:1})} h pour atteindre l'objectif${streakTxt}.`;
@@ -414,12 +421,69 @@ document.addEventListener('click', (e)=>{
 });
 
 /* ============================================================
+   MOTION HELPERS (compteurs animés, confettis de célébration)
+   ============================================================ */
+function prefersReducedMotion(){
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function animateCount(el, to, duration){
+  if(!el) return;
+  duration = duration || 650;
+  if(prefersReducedMotion() || to<=0){ el.textContent = to; return; }
+  const start = performance.now();
+  function step(now){
+    const p = Math.min(1, (now-start)/duration);
+    const eased = 1 - Math.pow(1-p, 3);
+    el.textContent = Math.round(eased*to);
+    if(p<1) requestAnimationFrame(step);
+    else el.textContent = to;
+  }
+  requestAnimationFrame(step);
+}
+const CONFETTI_COLORS = ['#C1622B','#A9782F','#3F7A57','#16302B','#E7ECE9'];
+function launchConfetti(){
+  if(prefersReducedMotion()) return;
+  const layer = document.createElement('div');
+  layer.className = 'confetti-layer';
+  const count = 110;
+  for(let i=0;i<count;i++){
+    const p = document.createElement('span');
+    p.className = 'confetti-piece';
+    p.style.left = (Math.random()*100)+'vw';
+    p.style.background = CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)];
+    p.style.animationDelay = (Math.random()*0.35)+'s';
+    p.style.animationDuration = (2+Math.random()*1.3)+'s';
+    p.style.setProperty('--drift', Math.round(Math.random()*160-80)+'px');
+    p.style.setProperty('--rot', Math.round(Math.random()*360)+'deg');
+    layer.appendChild(p);
+  }
+  document.body.appendChild(layer);
+  setTimeout(()=>layer.remove(), 3600);
+}
+
+/* ============================================================
    NAV
    ============================================================ */
+function positionTabIndicator(){
+  const nav = document.getElementById('tabNav');
+  const active = nav && nav.querySelector('button.active');
+  const indicator = document.getElementById('tabIndicator');
+  if(!nav || !active || !indicator) return;
+  indicator.style.width = active.offsetWidth+'px';
+  indicator.style.left = active.offsetLeft+'px';
+}
 function goto(tab){
-  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  document.querySelectorAll('section.view').forEach(s=>s.classList.toggle('active', s.id==='view-'+tab));
-  window.scrollTo({top:0, behavior:'instant' in window ? 'instant':'auto'});
+  const apply = ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+    document.querySelectorAll('section.view').forEach(s=>s.classList.toggle('active', s.id==='view-'+tab));
+    positionTabIndicator();
+    window.scrollTo({top:0, behavior:'instant' in window ? 'instant':'auto'});
+  };
+  if(document.startViewTransition && !prefersReducedMotion()){
+    document.startViewTransition(apply);
+  } else {
+    apply();
+  }
 }
 document.getElementById('tabNav').addEventListener('click', e=>{
   const b = e.target.closest('button[data-tab]');
@@ -428,6 +492,7 @@ document.getElementById('tabNav').addEventListener('click', e=>{
 document.querySelectorAll('.navcard').forEach(c=>{
   c.addEventListener('click', ()=>goto(c.dataset.goto));
 });
+window.addEventListener('resize', ()=>positionTabIndicator());
 
 /* ============================================================
    THEME
@@ -455,9 +520,9 @@ document.getElementById('themeToggle').addEventListener('click', ()=>{
    HOME
    ============================================================ */
 function renderHome(){
-  document.getElementById('statLearned').textContent = learnedCount();
-  document.getElementById('statDue').textContent = dueTodayCount(ALL_WORDS);
-  document.getElementById('statStreak').textContent = updateStreak();
+  animateCount(document.getElementById('statLearned'), learnedCount());
+  animateCount(document.getElementById('statDue'), dueTodayCount(ALL_WORDS));
+  animateCount(document.getElementById('statStreak'), updateStreak());
 
   const dayIdx = Math.floor(Date.now()/86400000) % ALL_WORDS.length;
   const w = ALL_WORDS[dayIdx];
@@ -586,23 +651,33 @@ function renderFlashzone(){
     return;
   }
   const w = currentCard;
+  const catTag = `${w.catLabel}${w.essential?' <span class="freq-badge" title="Un des mots les plus fréquents du hongrois — à connaître en priorité">★ essentiel</span>':''}`;
   zone.innerHTML = `
-    <div class="flashcard" id="flashcardEl">
-      <span class="cat-tag">${w.catLabel}${w.essential?' <span class="freq-badge" title="Un des mots les plus fréquents du hongrois — à connaître en priorité">★ essentiel</span>':''}</span>
-      <button class="mini-speak" id="flashSpeak" title="Écouter" style="position:absolute;top:10px;right:12px;font-size:1.15rem;">🔊</button>
-      ${cardFlipped
-        ? `<span class="back-label">Français</span><div class="word" style="font-size:1.6rem">${w.fr}</div>${w.note?`<div class="note">${w.note}</div>`:''}`
-        : `<div class="word">${w.hu}</div>`}
-      <span class="hint">${cardFlipped ? 'Cliquez pour revoir le mot' : 'Cliquez pour retourner la carte'}</span>
+    <div class="flashcard-scene">
+      <div class="flashcard ${cardFlipped?'flipped':''}" id="flashcardEl">
+        <div class="flashcard-face flashcard-front">
+          <span class="cat-tag">${catTag}</span>
+          <div class="word">${w.hu}</div>
+          <span class="hint">Cliquez pour retourner la carte</span>
+        </div>
+        <div class="flashcard-face flashcard-back">
+          <span class="cat-tag">${catTag}</span>
+          <span class="back-label">Français</span>
+          <div class="word" style="font-size:1.6rem">${w.fr}</div>
+          ${w.note?`<div class="note">${w.note}</div>`:''}
+          <span class="hint">Cliquez pour revoir le mot</span>
+        </div>
+      </div>
+      <button class="mini-speak flashcard-speak" id="flashSpeak" title="Écouter">🔊</button>
     </div>
     <div class="flash-controls">
       <button class="no" id="btnNo">✕ Je ne savais pas</button>
       <button class="yes" id="btnYes">✓ Je savais</button>
     </div>
   `;
-  document.getElementById('flashcardEl').addEventListener('click', ()=>{
+  document.getElementById('flashcardEl').addEventListener('click', function(){
     cardFlipped = !cardFlipped;
-    renderFlashzone();
+    this.classList.toggle('flipped', cardFlipped);
   });
   document.getElementById('flashSpeak').addEventListener('click', (e)=>{
     e.stopPropagation();
@@ -688,9 +763,11 @@ function renderGrammarAcademyRules(){
                 <span class="grule-caret">▸</span>
               </div>
               <div class="grule-body">
-                <p class="lede" style="font-size:.9rem;margin-bottom:8px;">${r.body}</p>
-                ${tableHtml}
-                ${exHtml}
+                <div class="grule-body-inner">
+                  <p class="lede" style="font-size:.9rem;margin-bottom:8px;">${r.body}</p>
+                  ${tableHtml}
+                  ${exHtml}
+                </div>
               </div>
             </div>`;
           }).join('')}
@@ -856,7 +933,7 @@ function renderAcademyLevelGroups(){
               <div class="academy-head-text"><b>${m.title}</b><span>${m.source}</span></div>
               <span class="academy-caret">▸</span>
             </div>
-            <div class="academy-body">${renderAcademyModuleBody(m)}</div>
+            <div class="academy-body"><div class="academy-body-inner">${renderAcademyModuleBody(m)}</div></div>
           </div>`).join('')}
       </div>
     </div>`;
@@ -981,6 +1058,7 @@ function finishDailyTest(){
   renderDailyTest();
   const dueLbl = document.getElementById('statDue');
   if(dueLbl) dueLbl.textContent = dueTodayCount(ALL_WORDS);
+  if(dailyTest.score === dailyTest.questions.length && dailyTest.questions.length>0) launchConfetti();
 }
 
 function renderDailyTest(){
@@ -1128,6 +1206,7 @@ function renderQuizQuestion(){
 function renderQuizResult(){
   const area = document.getElementById('quizArea');
   const total = quiz.questions.length;
+  if(quiz.score === total && total>0) launchConfetti();
   area.innerHTML = `
     <div class="card resultcard">
       <p class="eyebrow">Résultat</p>
@@ -1153,3 +1232,4 @@ renderVocab();
 renderDailyTest();
 renderGrammar();
 renderQuizSetup();
+positionTabIndicator();
