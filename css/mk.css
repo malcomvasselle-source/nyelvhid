@@ -79,3 +79,9 @@ body:not(.mode-mk) #mkNav{display:none;}
 @media (prefers-reduced-motion: reduce){
   .mk-opt{transition:none;}
 }
+
+/* Modules imbriqués dans un chapitre : seul l'état du module lui-même compte (pas celui du chapitre parent) */
+.mk-chapter .academy-module:not(.open) > .academy-body{grid-template-rows:0fr;}
+.mk-chapter .academy-module:not(.open) > .academy-head .academy-caret{transform:none;}
+.mk-chapter .academy-module.open > .academy-body{grid-template-rows:1fr;}
+.mk-chapter .academy-module.open > .academy-head .academy-caret{transform:rotate(90deg);}
