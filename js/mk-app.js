@@ -370,13 +370,17 @@ function mkReaderPages(m){
   if(vocab.length) pages.push({key:'voc', label:'Vocabulaire', html: `<h2 class="mk-rd-h">Vocabulaire du module</h2>
     <table class="paradigm"><tr><th>hongrois</th><th>français</th></tr>${vocab.map((w, i) =>
       `<tr><td class="hu"><button class="mini-speak" data-id="mk-${m.id}-v${i}" data-say="${mkEsc(w[0])}" title="Écouter">🔊</button> ${mkEsc(w[0])}</td><td>${mkEsc(w[1])}${w[2] ? ` <span class="mk-note">— ${mkEsc(w[2])}</span>` : ''}</td></tr>`).join('')}</table>`});
-  const cards = [];
-  rules.slice(0, 5).forEach(r => cards.push([mkEsc(r.title) + ' ?', mkEsc(mkFirstSentence(r.body)), 'r']));
-  vocab.slice(0, 5).forEach(w => cards.push([`<span class="hu">${mkEsc(w[0])}</span>`, mkEsc(w[1]), 'v']));
-  pages.push({key:'end', label:'À retenir', html: `<h2 class="mk-rd-h">À retenir</h2>
-    <p class="mk-j-sub">Touche une carte pour la retourner et te tester.</p>
-    <div class="mk-flips">${cards.map(c => `<button class="mk-flip ${c[2]}" type="button"><span class="mk-flip-in"><span class="mk-flip-f">${c[0]}</span><span class="mk-flip-b">${c[1]}</span></span></button>`).join('')}</div>
-    <div class="mk-postit" style="margin-top:20px"><b>Résumé</b><br>${rules.length} point${rules.length > 1 ? 's' : ''} de grammaire, ${vocab.length} mots${nItems ? ' et ' + nItems + ' exercices' : ''}. Refais les exercices ratés avant de passer au module suivant.</div>
+  const pts = rules.slice(0, 5).map((r, i) => `<li><span class="mk-bb-n">${i + 1}.</span><span><b>${mkEsc(r.title)}</b> — ${mkEsc(mkFirstSentence(r.body))}</span></li>`).join('');
+  const words = vocab.slice(0, 6).map(w => `<span><span class="hu">${mkEsc(w[0])}</span> <i>${mkEsc(w[1])}</i></span>`).join('');
+  pages.push({key:'end', label:'À retenir', html: `<div class="mk-board">
+      <div class="mk-bb-face">
+        <div class="mk-bb-title">À retenir — ${mkEsc(m.num)}</div>
+        ${pts ? `<ol class="mk-bb-list">${pts}</ol>` : ''}
+        ${words ? `<div class="mk-bb-words"><div class="mk-bb-lab">Mots à fixer</div>${words}</div>` : ''}
+        <div class="mk-bb-foot">${rules.length} règle${rules.length > 1 ? 's' : ''} · ${vocab.length} mots${nItems ? ' · ' + nItems + ' exercices' : ''}</div>
+      </div>
+      <div class="mk-bb-ledge"><span class="mk-chalk c1"></span><span class="mk-chalk c2"></span><span class="mk-eraser"></span><span class="mk-chalk c3"></span></div>
+    </div>
     <button class="btn mk-rd-finish">${mkState.mods[m.id] ? '✓ Module terminé — rouvrir plus tard' : 'Terminer le module ✓'}</button>`});
   return pages;
 }
