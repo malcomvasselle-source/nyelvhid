@@ -312,13 +312,15 @@ function mkRenderParcours(){
             <span class="academy-caret">▸</span></div>
           <div class="academy-body"><div class="academy-body-inner">
             <p class="lede mk-body">${mkEsc(c.intro)}</p>
-            <div class="mk-cards">${c.modules.map(id => {
-              const m = mkModule(id);
-              return `<button class="mk-card ${mkState.mods[m.id] ? 'done' : ''}" data-open="${m.id}">
-                <span class="mk-card-num">${mkEsc(m.num)}</span>
-                <b>${mkEsc(m.title.split(' — ')[0])}</b>
-                <span class="mk-card-sub">${mkEsc(m.title.split(' — ')[1] || '')}</span>
-                <span class="mk-card-state">${mkState.mods[m.id] ? '✓ Terminé' : 'Ouvrir ▸'}</span></button>`;
+            <div class="mk-books">${c.modules.map((id, bi) => {
+              const m = mkModule(id), done = !!mkState.mods[m.id];
+              const nw = (m.vocab || []).length, ne = (m.exercises || []).reduce((n, x) => n + ((x.items || []).length), 0);
+              return `<button class="mk-book c${bi % 5} ${done ? 'done' : ''}" data-open="${m.id}">
+                <span class="mk-book-num">${mkEsc(m.num)}</span>
+                <span class="mk-book-title">${mkEsc(m.title.split(' — ')[0])}</span>
+                <span class="mk-book-sub">${nw} mots · ${ne} exercices</span>
+                <span class="mk-book-bar"><i style="width:${done ? 100 : 0}%"></i></span>
+                <span class="mk-book-state">${done ? '✓ Terminé' : 'À faire'}</span></button>`;
             }).join('')}</div>
           </div></div></div>`;
       }).join('')}</div></div>`;
@@ -331,7 +333,7 @@ function mkRenderParcours(){
     const id = h.dataset.chap; mkOpenChaps[id] = !mkOpenChaps[id];
     document.getElementById('mkchap-' + id).classList.toggle('open', mkOpenChaps[id]);
   }));
-  root.querySelectorAll('.mk-card').forEach(c => c.addEventListener('click', () => mkOpenReader(c.dataset.open)));
+  root.querySelectorAll('.mk-book').forEach(c => c.addEventListener('click', () => mkOpenReader(c.dataset.open)));
 }
 /* ============================================================
    LECTEUR DE MODULE (pages à tourner)
@@ -347,17 +349,14 @@ function mkReaderPages(m){
   const nItems = blocks.reduce((n, b) => n + ((b.items || []).length), 0);
   const mins = Math.max(10, Math.round(5 + rules.length * 2 + blocks.length * 3 + vocab.length * 0.3));
   const pages = [];
-  pages.push({key:'intro', label:'Présentation', html: `
-    <p class="eyebrow">${mkEsc(chap ? chap.level + ' · Chapitre ' + chap.num + ' — ' + chap.hu : '')}</p>
-    <h2 class="mk-rd-title">${mkEsc(m.title)}</h2>
-    <p class="lede">${mkEsc(chap ? chap.fr : '')} · module ${mkEsc(m.num)}</p>
-    ${chap && chap.intro ? `<div class="card mk-rd-ctx"><b>Contexte</b><p class="mk-body">${mkEsc(chap.intro)}</p></div>` : ''}
-    ${rules.length ? `<div class="card"><b>Dans ce module, tu vas apprendre</b><ul class="mk-rd-list">${rules.map(r => `<li>${mkEsc(r.title)}</li>`).join('')}</ul></div>` : ''}
-    <div class="mk-rd-meta">
-      ${m.dialogue ? '<span>💬 1 dialogue</span>' : ''}
-      ${vocab.length ? `<span>🔤 ${vocab.length} mots</span>` : ''}
-      ${nItems ? `<span>✏️ ${nItems} exercices</span>` : ''}
-      <span>⏱ ~${mins} min</span></div>`});
+  const tilts = ['-2deg', '1.5deg', '-1deg', '2deg', '-1.5deg'];
+  pages.push({key:'intro', label:'Présentation', html: `<div class="mk-journal">
+    <p class="mk-j-tag">${mkEsc(chap ? chap.level + ' · Chapitre ' + chap.num + ' — ' + chap.hu : '')} · module ${mkEsc(m.num)}</p>
+    <h2 class="mk-j-title">${mkEsc(m.title)}</h2>
+    ${chap && chap.intro ? `<div class="mk-postit"><b>Contexte</b><br>${mkEsc(chap.intro)}</div>` : ''}
+    ${rules.length ? `<p class="mk-j-sub">Dans ce module, tu pars à la découverte de…</p>
+      <div class="mk-stickers">${rules.map((r, i) => `<span class="mk-sticker s${i % 4}" style="transform:rotate(${tilts[i % 5]})">${mkEsc(r.title)}</span>`).join('')}</div>` : ''}
+    <p class="mk-j-meta">${[vocab.length ? vocab.length + ' mots' : '', m.dialogue ? '1 dialogue' : '', nItems ? nItems + ' exercices' : '', '~' + mins + ' min'].filter(Boolean).join(' · ')}</p></div>`});
   if(rules.length || m.personTable){
     const pt = m.personTable;
     pages.push({key:'gram', label:'Grammaire', html: `<h2 class="mk-rd-h">Grammaire</h2>
@@ -371,12 +370,13 @@ function mkReaderPages(m){
   if(vocab.length) pages.push({key:'voc', label:'Vocabulaire', html: `<h2 class="mk-rd-h">Vocabulaire du module</h2>
     <table class="paradigm"><tr><th>hongrois</th><th>français</th></tr>${vocab.map((w, i) =>
       `<tr><td class="hu"><button class="mini-speak" data-id="mk-${m.id}-v${i}" data-say="${mkEsc(w[0])}" title="Écouter">🔊</button> ${mkEsc(w[0])}</td><td>${mkEsc(w[1])}${w[2] ? ` <span class="mk-note">— ${mkEsc(w[2])}</span>` : ''}</td></tr>`).join('')}</table>`});
-  const keys = rules.slice(0, 5).map(r => `<li><b>${mkEsc(r.title)}</b> — ${mkEsc(mkFirstSentence(r.body))}</li>`).join('');
-  const top = vocab.slice(0, 5).map(w => `<span class="mk-rd-chip"><span class="hu">${mkEsc(w[0])}</span> ${mkEsc(w[1])}</span>`).join('');
+  const cards = [];
+  rules.slice(0, 5).forEach(r => cards.push([mkEsc(r.title) + ' ?', mkEsc(mkFirstSentence(r.body)), 'r']));
+  vocab.slice(0, 5).forEach(w => cards.push([`<span class="hu">${mkEsc(w[0])}</span>`, mkEsc(w[1]), 'v']));
   pages.push({key:'end', label:'À retenir', html: `<h2 class="mk-rd-h">À retenir</h2>
-    ${keys ? `<div class="card"><b>Points clés</b><ul class="mk-rd-list">${keys}</ul></div>` : ''}
-    ${top ? `<div class="card"><b>Mots à fixer</b><div class="mk-rd-chips">${top}</div></div>` : ''}
-    <div class="card"><b>Résumé</b><p class="mk-body">Tu as vu ${rules.length} point${rules.length > 1 ? 's' : ''} de grammaire, ${vocab.length} mots${nItems ? ' et ' + nItems + ' exercices' : ''}. Relis les tableaux et refais les exercices ratés avant de passer au module suivant.</p></div>
+    <p class="mk-j-sub">Touche une carte pour la retourner et te tester.</p>
+    <div class="mk-flips">${cards.map(c => `<button class="mk-flip ${c[2]}" type="button"><span class="mk-flip-in"><span class="mk-flip-f">${c[0]}</span><span class="mk-flip-b">${c[1]}</span></span></button>`).join('')}</div>
+    <div class="mk-postit" style="margin-top:20px"><b>Résumé</b><br>${rules.length} point${rules.length > 1 ? 's' : ''} de grammaire, ${vocab.length} mots${nItems ? ' et ' + nItems + ' exercices' : ''}. Refais les exercices ratés avant de passer au module suivant.</div>
     <button class="btn mk-rd-finish">${mkState.mods[m.id] ? '✓ Module terminé — rouvrir plus tard' : 'Terminer le module ✓'}</button>`});
   return pages;
 }
@@ -424,6 +424,7 @@ function mkOpenReader(id){
   el.querySelector('.mk-rd-track').innerHTML = pages.map(p => `<section class="mk-rd-page" data-key="${p.key}"><div class="mk-rd-scroll">${p.html}</div></section>`).join('');
   el.querySelector('.mk-rd-dots').innerHTML = pages.map((p, i) => `<button data-p="${i}" title="${mkEsc(p.label)}"><i></i><span>${mkEsc(p.label)}</span></button>`).join('');
   mkWire(el.querySelector('.mk-rd-track'));
+  el.querySelectorAll('.mk-flip').forEach(f => f.addEventListener('click', () => f.classList.toggle('on')));
   if(m.dialogue) mkRenderDialogue(m);
   const fin = el.querySelector('.mk-rd-finish');
   if(fin) fin.addEventListener('click', () => {
