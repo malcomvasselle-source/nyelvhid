@@ -3,17 +3,16 @@
  * Ce parcours suit la progression et la structure du manuel (salutations → pays/langues →
  * nombres → métiers → famille → synthèse), mais tous les textes, exemples, dialogues et
  * exercices sont rédigés pour l’application (aucune copie du manuel).
- * Même format que ACADEMY_MODULES, plus :
- *   course / courseLabel : regroupe les modules dans un parcours distinct
- *   vocab : liste [hongrois, français, note] affichée dans le module
- *   exercices de type 'truefalse' : {text, answer:true|false, note}
+ * Cette app MagyarOK est indépendante de l’« App de base Malcom » (data-a1.js / data-academy.js).
+ * Chaque module : rules, personTable (optionnel), vocab [hongrois, français, note], exercises, dialogue.
+ * Types d’exercices : fill, translate, truefalse, choice, order.
  */
 
 const MAGYAROK_COURSE = 'magyarok-a1';
 const MAGYAROK_LABEL = 'MagyarOK · Chapitre 2 — Találkozás (Rencontres)';
 const MAGYAROK_SOURCE = 'Parcours MagyarOK A1 — chapitre 2';
 
-ACADEMY_MODULES.push(
+const MK_MODULES = [
   /* ------------------------------------------------------------------ */
   {
     id:'mk2_1', num:'K2.1', level:'A1', course:MAGYAROK_COURSE, courseLabel:MAGYAROK_LABEL,
@@ -599,4 +598,4 @@ ACADEMY_MODULES.push(
       ]
     }
   }
-);
+];

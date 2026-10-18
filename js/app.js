@@ -739,8 +739,8 @@ function renderGrammarAcademyRules(){
   // pour que toute nouvelle règle ajoutée à un module apparaisse ici automatiquement.
   const groups = [];
   ACADEMY_MODULES.forEach(m=>{
-    let g = groups.find(g=>g.level===m.level && (g.course||'')===(m.course||''));
-    if(!g){ g = {level:m.level, course:m.course||'', courseLabel:m.courseLabel||'', modules:[]}; groups.push(g); }
+    let g = groups.find(g=>g.level===m.level);
+    if(!g){ g = {level:m.level, modules:[]}; groups.push(g); }
     g.modules.push(m);
   });
 
@@ -748,7 +748,6 @@ function renderGrammarAcademyRules(){
     <div class="level-group">
       <div class="level-group-head">
         <span class="level-group-badge">${g.level}</span>
-        ${g.courseLabel?`<span class="level-group-count">${g.courseLabel}</span>`:''}
       </div>
       ${g.modules.map(m=>`
         <div class="grammar-module">
@@ -860,19 +859,6 @@ function renderAcademyModuleBody(m){
       </div>
     </div>` : '';
 
-  const vocabBlockHtml = m.vocabCat ? `
-    <div class="academy-section academy-vocab-note">
-      <div>
-        <p class="academy-section-title" style="margin-bottom:4px;">Vocabulaire</p>
-        <p class="lede" style="margin:0;font-size:.9rem;">Métiers, nationalités et quelques phrases utiles — ajoutés à tes flashcards et à ton quiz.</p>
-      </div>
-      <button class="unit-link-btn" data-goto-vocab="${m.vocabCat}">Réviser ce vocabulaire</button>
-    </div>` : (m.vocab ? `
-    <div class="academy-section">
-      <p class="academy-section-title">Vocabulaire du module</p>
-      <table class="paradigm"><tr><th>hongrois</th><th>français</th></tr>${m.vocab.map((w,i)=>`<tr><td class="hu"><button class="mini-speak" data-id="acad-${m.id}-voc-${i}" data-say="${w[0].replace(/"/g,'&quot;')}" title="Écouter">🔊</button> ${w[0]}</td><td>${w[1]}${w[2]?` <span style="color:var(--text-muted);">— ${w[2]}</span>`:''}</td></tr>`).join('')}</table>
-    </div>` : '');
-
   const exercisesHtml = m.exercises.map((ex,exi)=>{
     if(ex.type==='fill'){
       return `<div class="academy-section">
@@ -885,20 +871,6 @@ function renderAcademyModuleBody(m){
               <button class="exo-check-btn" data-mod="${m.id}" data-ex="${exi}" data-it="${ii}">Vérifier</button>
             </div>
             <div class="exo-feedback"></div>
-          </div>`).join('')}
-      </div>`;
-    }
-    if(ex.type==='truefalse'){
-      return `<div class="academy-section">
-        <p class="academy-section-title">${ex.title}</p>
-        ${ex.items.map(it=>`
-          <div class="exo-item tf-item" data-ans="${it.answer}">
-            <div class="exo-prompt">${it.text}</div>
-            <div class="exo-row">
-              <button class="exo-check-btn tf-btn" data-val="true">Vrai</button>
-              <button class="exo-check-btn tf-btn" data-val="false">Faux</button>
-            </div>
-            <div class="exo-feedback" data-note="${(it.note||'').replace(/"/g,'&quot;')}"></div>
           </div>`).join('')}
       </div>`;
     }
@@ -922,7 +894,13 @@ function renderAcademyModuleBody(m){
       ${rulesHtml}
     </div>
     ${personTableHtml}
-    ${vocabBlockHtml}
+    <div class="academy-section academy-vocab-note">
+      <div>
+        <p class="academy-section-title" style="margin-bottom:4px;">Vocabulaire</p>
+        <p class="lede" style="margin:0;font-size:.9rem;">Métiers, nationalités et quelques phrases utiles — ajoutés à tes flashcards et à ton quiz.</p>
+      </div>
+      <button class="unit-link-btn" data-goto-vocab="${m.vocabCat}">Réviser ce vocabulaire</button>
+    </div>
     ${exercisesHtml}
     <div class="academy-section">
       <p class="academy-section-title">Dialogue</p>
@@ -934,8 +912,8 @@ function renderAcademyLevelGroups(){
   // regroupe les modules par niveau (dans l'ordre d'apparition, donc l'ordre du cours)
   const groups = [];
   ACADEMY_MODULES.forEach(m=>{
-    let g = groups.find(g=>g.level===m.level && (g.course||'')===(m.course||''));
-    if(!g){ g = {level:m.level, course:m.course||'', courseLabel:m.courseLabel||'', modules:[]}; groups.push(g); }
+    let g = groups.find(g=>g.level===m.level);
+    if(!g){ g = {level:m.level, modules:[]}; groups.push(g); }
     g.modules.push(m);
   });
 
@@ -944,7 +922,7 @@ function renderAcademyLevelGroups(){
     return `<div class="level-group">
       <div class="level-group-head">
         <span class="level-group-badge">${g.level}</span>
-        <span class="level-group-count">${g.courseLabel?g.courseLabel+' · ':''}${doneCount}/${g.modules.length} modules terminés</span>
+        <span class="level-group-count">${doneCount}/${g.modules.length} modules terminés</span>
       </div>
       <div class="academy-list">
         ${g.modules.map(m=>`
@@ -985,18 +963,7 @@ function renderAcademyLevelGroups(){
   document.querySelectorAll('[data-goto-vocab]').forEach(b=>{
     b.addEventListener('click', ()=>goToVocabModule(b.dataset.gotoVocab));
   });
-  document.querySelectorAll('.tf-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const item = btn.closest('.tf-item');
-      const fb = item.querySelector('.exo-feedback');
-      const ok = (btn.dataset.val === item.dataset.ans);
-      item.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('ok','bad'));
-      btn.classList.add(ok?'ok':'bad');
-      fb.textContent = (ok ? '✓ Correct' : '✗ Raté') + (fb.dataset.note ? ' — ' + fb.dataset.note : '');
-      fb.className = 'exo-feedback ' + (ok?'ok':'bad');
-    });
-  });
-  document.querySelectorAll('.exo-check-btn:not(.tf-btn)').forEach(btn=>{
+  document.querySelectorAll('.exo-check-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const item = btn.closest('.exo-item');
       const input = item.querySelector('.exo-input');

@@ -599,7 +599,3 @@ table.paradigm tr:last-child td{border-bottom:none;}
 }
 
 footer.app{text-align:center;padding:30px 20px 50px;color:var(--text-muted);font-size:.78rem;}
-
-/* Exercices vrai/faux */
-.tf-btn.ok{background:var(--success-bg);color:var(--success);border-color:var(--success);border-color:transparent;}
-.tf-btn.bad{background:var(--danger-bg);color:var(--danger);border-color:var(--danger);border-color:transparent;}
