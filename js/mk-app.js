@@ -312,15 +312,13 @@ function mkRenderParcours(){
             <span class="academy-caret">▸</span></div>
           <div class="academy-body"><div class="academy-body-inner">
             <p class="lede mk-body">${mkEsc(c.intro)}</p>
-            <div class="academy-list">${c.modules.map(id => {
+            <div class="mk-cards">${c.modules.map(id => {
               const m = mkModule(id);
-              return `<div class="academy-module" id="mkmod-${m.id}">
-                <div class="academy-head" data-toggle="${m.id}">
-                  <span class="academy-num">${mkEsc(m.num)}</span>
-                  <button class="academy-check ${mkState.mods[m.id] ? 'done' : ''}" data-check="${m.id}" data-chap="${c.id}" title="Marquer comme terminé">✓</button>
-                  <div class="academy-head-text"><b>${mkEsc(m.title)}</b><span>${mkEsc(m.source)}</span></div>
-                  <span class="academy-caret">▸</span></div>
-                <div class="academy-body"><div class="academy-body-inner" data-body="${m.id}"></div></div></div>`;
+              return `<button class="mk-card ${mkState.mods[m.id] ? 'done' : ''}" data-open="${m.id}">
+                <span class="mk-card-num">${mkEsc(m.num)}</span>
+                <b>${mkEsc(m.title.split(' — ')[0])}</b>
+                <span class="mk-card-sub">${mkEsc(m.title.split(' — ')[1] || '')}</span>
+                <span class="mk-card-state">${mkState.mods[m.id] ? '✓ Terminé' : 'Ouvrir ▸'}</span></button>`;
             }).join('')}</div>
           </div></div></div>`;
       }).join('')}</div></div>`;
@@ -333,42 +331,140 @@ function mkRenderParcours(){
     const id = h.dataset.chap; mkOpenChaps[id] = !mkOpenChaps[id];
     document.getElementById('mkchap-' + id).classList.toggle('open', mkOpenChaps[id]);
   }));
-  root.querySelectorAll('.academy-module:not(.mk-chapter) > .academy-head[data-toggle]').forEach(h => h.addEventListener('click', e => {
-    if(e.target.closest('.academy-check')) return;
-    mkToggleModule(h.dataset.toggle);
-  }));
-  root.querySelectorAll('.academy-check').forEach(c => c.addEventListener('click', e => {
-    e.stopPropagation();
-    const id = c.dataset.check;
-    mkState.mods[id] = !mkState.mods[id]; mkSave();
-    c.classList.toggle('done', !!mkState.mods[id]);
-    const chap = mkChapter(c.dataset.chap);
-    const n = chap.modules.filter(x => mkState.mods[x]).length;
-    document.querySelector(`#mkchap-${chap.id} > .academy-head .academy-head-text span`).textContent = `${n}/${chap.modules.length} modules terminés`;
-  }));
+  root.querySelectorAll('.mk-card').forEach(c => c.addEventListener('click', () => mkOpenReader(c.dataset.open)));
 }
-function mkToggleModule(id, forceOpen){
-  const el = document.getElementById('mkmod-' + id); if(!el) return;
-  const open = forceOpen !== undefined ? forceOpen : !el.classList.contains('open');
-  el.classList.toggle('open', open);
-  if(open){
-    const body = el.querySelector('[data-body]');
-    if(!body.dataset.ready){
-      const m = mkModule(id);
-      body.innerHTML = mkModuleBody(m);
-      mkWire(body);
-      mkRenderDialogue(m);
-      body.dataset.ready = '1';
-    }
+/* ============================================================
+   LECTEUR DE MODULE (pages à tourner)
+   ============================================================ */
+let mkRd = null; // {m, pages, i}
+function mkFirstSentence(t){
+  const x = String(t || '').trim(); const k = x.search(/[.!?](\s|$)/);
+  return k > 0 ? x.slice(0, k + 1) : x;
+}
+function mkReaderPages(m){
+  const chap = MK_CHAPTERS.find(c => c.modules.includes(m.id));
+  const rules = m.rules || [], vocab = m.vocab || [], blocks = m.exercises || [];
+  const nItems = blocks.reduce((n, b) => n + ((b.items || []).length), 0);
+  const mins = Math.max(10, Math.round(5 + rules.length * 2 + blocks.length * 3 + vocab.length * 0.3));
+  const pages = [];
+  pages.push({key:'intro', label:'Présentation', html: `
+    <p class="eyebrow">${mkEsc(chap ? chap.level + ' · Chapitre ' + chap.num + ' — ' + chap.hu : '')}</p>
+    <h2 class="mk-rd-title">${mkEsc(m.title)}</h2>
+    <p class="lede">${mkEsc(chap ? chap.fr : '')} · module ${mkEsc(m.num)}</p>
+    ${chap && chap.intro ? `<div class="card mk-rd-ctx"><b>Contexte</b><p class="mk-body">${mkEsc(chap.intro)}</p></div>` : ''}
+    ${rules.length ? `<div class="card"><b>Dans ce module, tu vas apprendre</b><ul class="mk-rd-list">${rules.map(r => `<li>${mkEsc(r.title)}</li>`).join('')}</ul></div>` : ''}
+    <div class="mk-rd-meta">
+      ${m.dialogue ? '<span>💬 1 dialogue</span>' : ''}
+      ${vocab.length ? `<span>🔤 ${vocab.length} mots</span>` : ''}
+      ${nItems ? `<span>✏️ ${nItems} exercices</span>` : ''}
+      <span>⏱ ~${mins} min</span></div>`});
+  if(rules.length || m.personTable){
+    const pt = m.personTable;
+    pages.push({key:'gram', label:'Grammaire', html: `<h2 class="mk-rd-h">Grammaire</h2>
+      ${rules.map((r, i) => mkRuleHtml(r, m.id, i)).join('')}
+      ${pt ? `<div class="academy-section"><p class="academy-section-title">${mkEsc(pt.title)}</p><p class="lede mk-body">${mkEsc(pt.body)}</p>
+        <div class="person-table-wrap"><table class="paradigm"><tr><th></th>${pt.cols.map(c => `<th>${mkEsc(c)}</th>`).join('')}</tr>
+        ${pt.rows.map(r => `<tr><td style="font-weight:600;white-space:nowrap;">${mkEsc(r[0])}</td><td class="hu">${mkEsc(r[1])}</td><td class="hu">${mkEsc(r[2])}</td><td>${mkEsc(r[3])}</td></tr>`).join('')}</table></div></div>` : ''}`});
   }
+  if(m.dialogue) pages.push({key:'dlg', label:'Dialogue', html: `<h2 class="mk-rd-h">Dialogue</h2><div id="mkDlg-${m.id}"></div>`});
+  if(blocks.length) pages.push({key:'ex', label:'Exercices', html: `<h2 class="mk-rd-h">Exercices</h2>${blocks.map((b, i) => mkBlockHtml(b, m.id + '-x' + i)).join('')}`});
+  if(vocab.length) pages.push({key:'voc', label:'Vocabulaire', html: `<h2 class="mk-rd-h">Vocabulaire du module</h2>
+    <table class="paradigm"><tr><th>hongrois</th><th>français</th></tr>${vocab.map((w, i) =>
+      `<tr><td class="hu"><button class="mini-speak" data-id="mk-${m.id}-v${i}" data-say="${mkEsc(w[0])}" title="Écouter">🔊</button> ${mkEsc(w[0])}</td><td>${mkEsc(w[1])}${w[2] ? ` <span class="mk-note">— ${mkEsc(w[2])}</span>` : ''}</td></tr>`).join('')}</table>`});
+  const keys = rules.slice(0, 5).map(r => `<li><b>${mkEsc(r.title)}</b> — ${mkEsc(mkFirstSentence(r.body))}</li>`).join('');
+  const top = vocab.slice(0, 5).map(w => `<span class="mk-rd-chip"><span class="hu">${mkEsc(w[0])}</span> ${mkEsc(w[1])}</span>`).join('');
+  pages.push({key:'end', label:'À retenir', html: `<h2 class="mk-rd-h">À retenir</h2>
+    ${keys ? `<div class="card"><b>Points clés</b><ul class="mk-rd-list">${keys}</ul></div>` : ''}
+    ${top ? `<div class="card"><b>Mots à fixer</b><div class="mk-rd-chips">${top}</div></div>` : ''}
+    <div class="card"><b>Résumé</b><p class="mk-body">Tu as vu ${rules.length} point${rules.length > 1 ? 's' : ''} de grammaire, ${vocab.length} mots${nItems ? ' et ' + nItems + ' exercices' : ''}. Relis les tableaux et refais les exercices ratés avant de passer au module suivant.</p></div>
+    <button class="btn mk-rd-finish">${mkState.mods[m.id] ? '✓ Module terminé — rouvrir plus tard' : 'Terminer le module ✓'}</button>`});
+  return pages;
+}
+function mkReaderEl(){
+  let el = document.getElementById('mkReader');
+  if(el) return el;
+  el = document.createElement('div');
+  el.id = 'mkReader'; el.className = 'mk-reader';
+  el.innerHTML = `<div class="mk-rd-top"><button class="mk-rd-close" aria-label="Fermer">✕</button>
+    <div class="mk-rd-head"><b class="mk-rd-name"></b><span class="mk-rd-step"></span></div></div>
+    <div class="mk-rd-dots"></div>
+    <div class="mk-rd-viewport"><div class="mk-rd-track"></div></div>
+    <div class="mk-rd-nav"><button class="btn ghost mk-rd-prev">‹ Précédent</button><button class="btn mk-rd-next">Suivant ›</button></div>`;
+  document.body.appendChild(el);
+  el.querySelector('.mk-rd-close').addEventListener('click', mkCloseReader);
+  el.querySelector('.mk-rd-prev').addEventListener('click', () => mkReaderGo(mkRd.i - 1));
+  el.querySelector('.mk-rd-next').addEventListener('click', () => mkReaderGo(mkRd.i + 1));
+  el.querySelector('.mk-rd-dots').addEventListener('click', e => {
+    const d = e.target.closest('[data-p]'); if(d) mkReaderGo(+d.dataset.p);
+  });
+  const vp = el.querySelector('.mk-rd-viewport');
+  let x0 = null, y0 = 0;
+  vp.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
+  vp.addEventListener('touchend', e => {
+    if(x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) mkReaderGo(mkRd.i + (dx < 0 ? 1 : -1));
+  }, {passive:true});
+  document.addEventListener('keydown', e => {
+    if(!mkRd) return;
+    if(e.key === 'Escape') mkCloseReader();
+    else if(!/INPUT|TEXTAREA/.test((e.target || {}).tagName || '')){
+      if(e.key === 'ArrowRight') mkReaderGo(mkRd.i + 1);
+      if(e.key === 'ArrowLeft') mkReaderGo(mkRd.i - 1);
+    }
+  });
+  return el;
+}
+function mkOpenReader(id){
+  const m = mkModule(id); if(!m) return;
+  const el = mkReaderEl();
+  const pages = mkReaderPages(m);
+  mkRd = {m, pages, i: 0};
+  el.querySelector('.mk-rd-name').textContent = m.num + ' — ' + m.title.split(' — ')[0];
+  el.querySelector('.mk-rd-track').innerHTML = pages.map(p => `<section class="mk-rd-page" data-key="${p.key}"><div class="mk-rd-scroll">${p.html}</div></section>`).join('');
+  el.querySelector('.mk-rd-dots').innerHTML = pages.map((p, i) => `<button data-p="${i}" title="${mkEsc(p.label)}"><i></i><span>${mkEsc(p.label)}</span></button>`).join('');
+  mkWire(el.querySelector('.mk-rd-track'));
+  if(m.dialogue) mkRenderDialogue(m);
+  const fin = el.querySelector('.mk-rd-finish');
+  if(fin) fin.addEventListener('click', () => {
+    mkState.mods[m.id] = true; mkSave();
+    mkCloseReader();
+  });
+  document.body.classList.add('mk-reading');
+  el.classList.add('open');
+  mkReaderGo(0, true);
+}
+function mkReaderGo(i, instant){
+  if(!mkRd) return;
+  const n = mkRd.pages.length;
+  if(i < 0 || i >= n) return;
+  mkRd.i = i;
+  const el = document.getElementById('mkReader');
+  const track = el.querySelector('.mk-rd-track');
+  if(instant) track.style.transition = 'none';
+  track.style.transform = `translateX(${-100 * i}%)`;
+  if(instant){ void track.offsetWidth; track.style.transition = ''; }
+  el.querySelectorAll('.mk-rd-page').forEach((pg, k) => { pg.classList.toggle('active', k === i); if(k === i) pg.querySelector('.mk-rd-scroll').scrollTop = 0; });
+  el.querySelectorAll('.mk-rd-dots button').forEach((d, k) => { d.classList.toggle('active', k === i); d.classList.toggle('past', k < i); });
+  el.querySelector('.mk-rd-step').textContent = `${i + 1}/${n} · ${mkRd.pages[i].label}`;
+  el.querySelector('.mk-rd-prev').style.visibility = i === 0 ? 'hidden' : 'visible';
+  const nx = el.querySelector('.mk-rd-next');
+  nx.style.display = i === n - 1 ? 'none' : '';
+}
+function mkCloseReader(){
+  const el = document.getElementById('mkReader');
+  if(el) el.classList.remove('open');
+  document.body.classList.remove('mk-reading');
+  mkRd = null;
+  if(typeof mkRenderParcours === 'function'){ mkRenderParcours(); }
+  if(typeof mkRenderHome === 'function'){ mkRenderHome(); }
 }
 function mkOpenModule(id){
   mkGoto('mk-parcours');
   const c = MK_CHAPTERS.find(x => x.modules.includes(id));
-  if(c){ mkOpenChaps[c.id] = true; const ce = document.getElementById('mkchap-' + c.id); if(ce) ce.classList.add('open'); }
-  mkToggleModule(id, true);
-  const el = document.getElementById('mkmod-' + id);
-  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  if(c) mkOpenChaps[c.id] = true;
+  mkRenderParcours();
+  mkOpenReader(id);
 }
 
 /* ============================================================
