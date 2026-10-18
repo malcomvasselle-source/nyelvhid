@@ -16,7 +16,13 @@ function mkSave(){ try{ localStorage.setItem(MK_LS, JSON.stringify(mkState)); }c
 /* ---------- utilitaires ---------- */
 const mkEsc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const mkNorm = s => String(s).toLowerCase().replace(/[–—−]/g,'-').replace(/[?!.,;:]/g,'').replace(/\s+/g,' ').trim();
+MK_CHAPTERS.sort((a,b) => a.level === b.level ? a.num - b.num : a.level.localeCompare(b.level));
 const mkModule = id => MK_MODULES.find(m => m.id === id);
+/* Chapitres triés (A1 puis A2, par numéro) ; un chapitre « construit » est présent dans MK_CHAPTERS. */
+MK_CHAPTERS.sort((a, b) => (a.level === b.level ? a.num - b.num : a.level < b.level ? -1 : 1));
+const mkChapter = id => MK_CHAPTERS.find(c => c.id === id);
+const mkChapLabel = c => `${c.level} · Chapitre ${c.num} — ${c.hu} (${c.fr})`;
+const mkAllSets = () => MK_CHAPTERS.flatMap(c => (c.exercises||[]).map(s => Object.assign({chapter: c.id}, s)));
 const mkShuffle = a => { const r = a.slice(); for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; };
 function mkSay(id, text){ if(typeof playClip === 'function') playClip(id, text); }
 
@@ -214,7 +220,7 @@ function mkRuleHtml(r, mid, ri){
   return `<div class="academy-rule"><b class="rt">${mkEsc(r.title)}</b><p class="lede mk-body">${mkEsc(r.body)}</p>${table}${ex}</div>`;
 }
 function mkModuleBody(m){
-  const rules = m.rules.map((r, i) => mkRuleHtml(r, m.id, i)).join('');
+  const rules = (m.rules||[]).map((r, i) => mkRuleHtml(r, m.id, i)).join('');
   const pt = m.personTable;
   const ptHtml = pt ? `<div class="academy-section"><p class="academy-section-title">${mkEsc(pt.title)}</p>
     <p class="lede mk-body">${mkEsc(pt.body)}</p>
@@ -223,23 +229,25 @@ function mkModuleBody(m){
   const vocab = m.vocab ? `<div class="academy-section"><p class="academy-section-title">Vocabulaire du module</p>
     <table class="paradigm"><tr><th>hongrois</th><th>français</th></tr>${m.vocab.map((w, i) =>
       `<tr><td class="hu"><button class="mini-speak" data-id="mk-${m.id}-v${i}" data-say="${mkEsc(w[0])}" title="Écouter">🔊</button> ${mkEsc(w[0])}</td><td>${mkEsc(w[1])}${w[2] ? ` <span class="mk-note">— ${mkEsc(w[2])}</span>` : ''}</td></tr>`).join('')}</table></div>` : '';
-  const ex = m.exercises.map((b, i) => mkBlockHtml(b, m.id + '-x' + i)).join('');
-  return `<div class="academy-section"><p class="academy-section-title">Grammaire</p>${rules}</div>${ptHtml}${vocab}${ex}
-    <div class="academy-section"><p class="academy-section-title">Dialogue</p><div id="mkDlg-${m.id}"></div></div>`;
+  const ex = (m.exercises||[]).map((b, i) => mkBlockHtml(b, m.id + '-x' + i)).join('');
+  return `${rules ? `<div class="academy-section"><p class="academy-section-title">Grammaire</p>${rules}</div>` : ''}${ptHtml}${vocab}${ex}
+    ${m.dialogue ? `<div class="academy-section"><p class="academy-section-title">Dialogue</p><div id="mkDlg-${m.id}"></div></div>` : ''}`;
 }
 const mkDlgMode = {};
 function mkRenderDialogue(m){
   const mode = mkDlgMode[m.id] || 'formal';
   const box = document.getElementById('mkDlg-' + m.id);
   if(!box) return;
-  box.innerHTML = `<div class="toggle2">
+  const two = !!(m.dialogue.informal && m.dialogue.formal);
+  const lines = two ? m.dialogue[mode] : (m.dialogue.formal || m.dialogue.informal);
+  box.innerHTML = `${two ? `<div class="toggle2">
       <button data-mode="formal" class="${mode === 'formal' ? 'active' : ''}">Formel (Ön)</button>
-      <button data-mode="informal" class="${mode === 'informal' ? 'active' : ''}">Familier (te)</button></div>
+      <button data-mode="informal" class="${mode === 'informal' ? 'active' : ''}">Familier (te)</button></div>` : ''}
     <div class="card dialogue"><h3>${mkEsc(m.dialogue.title)}</h3>
-    ${m.dialogue[mode].map((l, i) => `<div class="line"><div class="line-spk">
+    ${lines.map((l, i) => `<div class="line"><div class="line-spk">
       <button class="mini-speak" data-id="mk-${m.id}-d${mode}${i}" data-say="${mkEsc(l[0])}" title="Écouter">🔊</button>
       <span class="hu">${mkEsc(l[0])}</span></div><span class="fr">${mkEsc(l[1])}</span></div>`).join('')}</div>`;
-  box.querySelector('.toggle2').addEventListener('click', e => {
+  if(two) box.querySelector('.toggle2').addEventListener('click', e => {
     const b = e.target.closest('button[data-mode]'); if(!b) return;
     mkDlgMode[m.id] = b.dataset.mode; mkRenderDialogue(m);
   });
@@ -251,7 +259,9 @@ function mkRenderDialogue(m){
    ============================================================ */
 function mkRenderHome(){
   const p = mkProgress();
-  const next = MK_MODULES.find(m => !mkState.mods[m.id]);
+  const nextId = MK_CHAPTERS.flatMap(c => c.modules).find(id => !mkState.mods[id]);
+  const next = nextId ? mkModule(nextId) : null;
+  const nextChap = next ? MK_CHAPTERS.find(c => c.modules.includes(next.id)) : null;
   document.getElementById('view-mk-home').innerHTML = `
     <div class="hero">
       <p class="eyebrow">Apprendre le hongrois depuis le français</p>
@@ -264,7 +274,7 @@ function mkRenderHome(){
       <div class="card stat"><span class="num tnum">${p.setsDone}/${p.sets}</span><span class="lab">séries d’exercices réussies</span></div>
     </div>
     ${next ? `<p class="eyebrow">Reprendre</p>
-    <div class="card navcard mk-resume" data-open="${next.id}"><span class="ic">▶</span><b>${mkEsc(next.num)} — ${mkEsc(next.title)}</b><span>Chapitre 2 · Találkozás</span></div>` : `<div class="card"><b>Bravo, tu as terminé tous les modules disponibles.</b></div>`}
+    <div class="card navcard mk-resume" data-open="${next.id}"><span class="ic">▶</span><b>${mkEsc(next.num)} — ${mkEsc(next.title)}</b><span>${mkEsc(nextChap.level)} · Chapitre ${nextChap.num} · ${mkEsc(nextChap.hu)}</span></div>` : `<div class="card"><b>Bravo, tu as terminé tous les modules disponibles.</b></div>`}
     <p class="eyebrow">Explorer</p>
     <div class="navcards">
       <div class="card navcard" data-mkgo="mk-parcours"><span class="ic">◭</span><b>Parcours</b><span>Les chapitres des manuels, module par module</span></div>
@@ -282,39 +292,48 @@ function mkRenderHome(){
 /* ============================================================
    PARCOURS
    ============================================================ */
-let mkOpenChapter = 'a1-2';
+const mkOpenChaps = {};
 function mkRenderParcours(){
   const root = document.getElementById('view-mk-parcours');
-  const chap = MK_CHAPTERS[0];
-  const done = chap.modules.filter(id => mkState.mods[id]).length;
-  const roadmap = MK_ROADMAP.map(g => `
-    <div class="level-group">
-      <div class="level-group-head"><span class="level-group-badge">${g.level}</span><span class="level-group-count">chapitres à venir</span></div>
-      <div class="academy-list">${g.items.map(c => `
-        <div class="academy-module mk-locked"><div class="academy-head"><span class="academy-num">${g.level} · ${c.num}</span>
-          <div class="academy-head-text"><b>${mkEsc(c.hu)}</b><span>${mkEsc(c.fr)}</span></div><span class="mk-soon">bientôt</span></div></div>`).join('')}
-      </div></div>`).join('');
+  const levels = ['A1', 'A2'];
+  const groups = levels.map(lv => {
+    const items = MK_ROADMAP.find(g => g.level === lv).items;
+    return `<div class="level-group">
+      <div class="level-group-head"><span class="level-group-badge">${lv}</span>
+        <span class="level-group-count">${MK_CHAPTERS.filter(c => c.level === lv).length}/${items.length} chapitres disponibles</span></div>
+      <div class="academy-list">${items.map(it => {
+        const c = MK_CHAPTERS.find(x => x.level === lv && x.num === it.num);
+        if(!c) return `<div class="academy-module mk-locked"><div class="academy-head"><span class="academy-num">${lv} · ${it.num}</span>
+          <div class="academy-head-text"><b>${mkEsc(it.hu)}</b><span>${mkEsc(it.fr)}</span></div><span class="mk-soon">bientôt</span></div></div>`;
+        const done = c.modules.filter(id => mkState.mods[id]).length;
+        return `<div class="academy-module mk-chapter ${mkOpenChaps[c.id] ? 'open' : ''}" id="mkchap-${c.id}">
+          <div class="academy-head" data-chap="${c.id}"><span class="academy-num">${lv} · ${c.num}</span>
+            <div class="academy-head-text"><b>${mkEsc(c.hu)} — ${mkEsc(c.fr)}</b><span>${done}/${c.modules.length} modules terminés</span></div>
+            <span class="academy-caret">▸</span></div>
+          <div class="academy-body"><div class="academy-body-inner">
+            <p class="lede mk-body">${mkEsc(c.intro)}</p>
+            <div class="academy-list">${c.modules.map(id => {
+              const m = mkModule(id);
+              return `<div class="academy-module" id="mkmod-${m.id}">
+                <div class="academy-head" data-toggle="${m.id}">
+                  <span class="academy-num">${mkEsc(m.num)}</span>
+                  <button class="academy-check ${mkState.mods[m.id] ? 'done' : ''}" data-check="${m.id}" data-chap="${c.id}" title="Marquer comme terminé">✓</button>
+                  <div class="academy-head-text"><b>${mkEsc(m.title)}</b><span>${mkEsc(m.source)}</span></div>
+                  <span class="academy-caret">▸</span></div>
+                <div class="academy-body"><div class="academy-body-inner" data-body="${m.id}"></div></div></div>`;
+            }).join('')}</div>
+          </div></div></div>`;
+      }).join('')}</div></div>`;
+  }).join('');
   root.innerHTML = `
     <p class="eyebrow">Programme</p><h1>Parcours</h1>
-    <p class="lede">Les chapitres suivent l’ordre des manuels MagyarOK. Ouvre un module pour lire la grammaire, le vocabulaire, faire les exercices et écouter le dialogue.</p>
-    <div class="level-groups">
-      <div class="level-group">
-        <div class="level-group-head"><span class="level-group-badge">A1</span><span class="level-group-count">Chapitre 2 · ${done}/${chap.modules.length} modules terminés</span></div>
-        <div class="card mk-chapter-intro"><b>${mkEsc(chap.hu)} — ${mkEsc(chap.fr)}</b><p class="lede mk-body">${mkEsc(chap.intro)}</p></div>
-        <div class="academy-list" id="mkModuleList">${chap.modules.map(id => {
-          const m = mkModule(id);
-          return `<div class="academy-module" id="mkmod-${m.id}">
-            <div class="academy-head" data-toggle="${m.id}">
-              <span class="academy-num">${mkEsc(m.num)}</span>
-              <button class="academy-check ${mkState.mods[m.id] ? 'done' : ''}" data-check="${m.id}" title="Marquer comme terminé">✓</button>
-              <div class="academy-head-text"><b>${mkEsc(m.title)}</b><span>${mkEsc(m.source)}</span></div>
-              <span class="academy-caret">▸</span></div>
-            <div class="academy-body"><div class="academy-body-inner" data-body="${m.id}"></div></div></div>`;
-        }).join('')}</div>
-      </div>
-      ${roadmap}
-    </div>`;
-  root.querySelectorAll('.academy-head').forEach(h => h.addEventListener('click', e => {
+    <p class="lede">Les chapitres suivent l’ordre des manuels MagyarOK. Ouvre un chapitre, puis un module : grammaire, vocabulaire, exercices et dialogue.</p>
+    <div class="level-groups">${groups}</div>`;
+  root.querySelectorAll('.academy-head[data-chap]').forEach(h => h.addEventListener('click', () => {
+    const id = h.dataset.chap; mkOpenChaps[id] = !mkOpenChaps[id];
+    document.getElementById('mkchap-' + id).classList.toggle('open', mkOpenChaps[id]);
+  }));
+  root.querySelectorAll('.academy-module:not(.mk-chapter) > .academy-head[data-toggle]').forEach(h => h.addEventListener('click', e => {
     if(e.target.closest('.academy-check')) return;
     mkToggleModule(h.dataset.toggle);
   }));
@@ -323,8 +342,9 @@ function mkRenderParcours(){
     const id = c.dataset.check;
     mkState.mods[id] = !mkState.mods[id]; mkSave();
     c.classList.toggle('done', !!mkState.mods[id]);
+    const chap = mkChapter(c.dataset.chap);
     const n = chap.modules.filter(x => mkState.mods[x]).length;
-    root.querySelector('.level-group-count').textContent = `Chapitre 2 · ${n}/${chap.modules.length} modules terminés`;
+    document.querySelector(`#mkchap-${chap.id} > .academy-head .academy-head-text span`).textContent = `${n}/${chap.modules.length} modules terminés`;
   }));
 }
 function mkToggleModule(id, forceOpen){
@@ -344,6 +364,8 @@ function mkToggleModule(id, forceOpen){
 }
 function mkOpenModule(id){
   mkGoto('mk-parcours');
+  const c = MK_CHAPTERS.find(x => x.modules.includes(id));
+  if(c){ mkOpenChaps[c.id] = true; const ce = document.getElementById('mkchap-' + c.id); if(ce) ce.classList.add('open'); }
   mkToggleModule(id, true);
   const el = document.getElementById('mkmod-' + id);
   if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
@@ -352,9 +374,10 @@ function mkOpenModule(id){
 /* ============================================================
    VOCABULAIRE
    ============================================================ */
-let mkVocabMode = 'list', mkVocabMod = 'all', mkFlash = null, mkQuiz = null;
+let mkVocabMode = 'list', mkVocabMod = 'all', mkVocabChap = 'all', mkFlash = null, mkQuiz = null;
 function mkVocabWords(){
-  const mods = mkVocabMod === 'all' ? MK_MODULES : MK_MODULES.filter(m => m.id === mkVocabMod);
+  const chapMods = mkVocabChap === 'all' ? MK_MODULES : MK_MODULES.filter(m => (mkChapter(mkVocabChap) || {modules:[]}).modules.includes(m.id));
+  const mods = mkVocabMod === 'all' ? chapMods : chapMods.filter(m => m.id === mkVocabMod);
   const seen = new Set(), out = [];
   mods.forEach(m => (m.vocab || []).forEach(w => {
     if(seen.has(w[0])) return; seen.add(w[0]);
@@ -366,11 +389,15 @@ function mkRenderVocab(){
   const root = document.getElementById('view-mk-vocab');
   const words = mkVocabWords();
   root.innerHTML = `
-    <p class="eyebrow">Chapitre 2 · Találkozás</p><h1>Vocabulaire</h1>
-    <p class="lede">Le vocabulaire de chaque module du manuel. Choisis un module, puis une façon de réviser.</p>
+    <p class="eyebrow">Szókincs</p><h1>Vocabulaire</h1>
+    <p class="lede">Le vocabulaire de chaque module du manuel. Choisis un chapitre, un module, puis une façon de réviser.</p>
+    <div class="chiprow" id="mkVocabChaps">
+      <button class="chip ${mkVocabChap === 'all' ? 'active' : ''}" data-chap="all">Tous les chapitres</button>
+      ${MK_CHAPTERS.map(c => `<button class="chip ${mkVocabChap === c.id ? 'active' : ''}" data-chap="${c.id}">${mkEsc(c.level)} · ${c.num}</button>`).join('')}
+    </div>
     <div class="chiprow" id="mkVocabChips">
-      <button class="chip ${mkVocabMod === 'all' ? 'active' : ''}" data-mod="all">Tous</button>
-      ${MK_MODULES.map(m => `<button class="chip ${mkVocabMod === m.id ? 'active' : ''}" data-mod="${m.id}">${mkEsc(m.num)}</button>`).join('')}
+      <button class="chip ${mkVocabMod === 'all' ? 'active' : ''}" data-mod="all">Tous les modules</button>
+      ${(mkVocabChap === 'all' ? [] : MK_MODULES.filter(m => mkChapter(mkVocabChap).modules.includes(m.id))).map(m => `<button class="chip ${mkVocabMod === m.id ? 'active' : ''}" data-mod="${m.id}">${mkEsc(m.num)}</button>`).join('')}
     </div>
     <div class="toggle2" id="mkVocabMode">
       <button data-mode="list" class="${mkVocabMode === 'list' ? 'active' : ''}">Liste</button>
@@ -378,6 +405,10 @@ function mkRenderVocab(){
       <button data-mode="quiz" class="${mkVocabMode === 'quiz' ? 'active' : ''}">Quiz</button>
     </div>
     <div id="mkVocabArea"></div>`;
+  root.querySelector('#mkVocabChaps').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if(!b) return;
+    mkVocabChap = b.dataset.chap; mkVocabMod = 'all'; mkFlash = null; mkQuiz = null; mkRenderVocab();
+  });
   root.querySelector('#mkVocabChips').addEventListener('click', e => {
     const b = e.target.closest('.chip'); if(!b) return;
     mkVocabMod = b.dataset.mod; mkFlash = null; mkQuiz = null; mkRenderVocab();
@@ -465,11 +496,10 @@ function mkGridHtml(g){
 }
 function mkRenderGrammar(){
   const root = document.getElementById('view-mk-gram');
-  const chap = MK_CHAPTERS[0];
   root.innerHTML = `
     <p class="eyebrow">Nyelvtani összefoglalók</p><h1>Grammaire</h1>
     <p class="lede">Les résumés de grammaire du cahier, chapitre par chapitre : la forme (FORMA) et l’emploi (FUNKCIÓ). Coche une règle quand tu la maîtrises.</p>
-    <div class="grammar-module"><p class="grammar-module-title">A1 · Chapitre 2 — ${mkEsc(chap.hu)} (${mkEsc(chap.fr)})</p>
+    ${MK_CHAPTERS.filter(c => (c.grammar||[]).length).map(chap => `<div class="grammar-module"><p class="grammar-module-title">${mkEsc(mkChapLabel(chap))}</p>
     ${chap.grammar.map(g => `
       <div class="grule" id="mkg-${g.id}">
         <div class="grule-head" data-toggle="${g.id}">
@@ -482,7 +512,7 @@ function mkRenderGrammar(){
           ${g.examples ? `<p class="mk-sub">PÉLDÁK</p>${g.examples.map((e, i) => `<div class="ex-line"><button class="mini-speak" data-id="mk-${g.id}-e${i}" data-say="${mkEsc(e[0])}" title="Écouter">🔊</button> <b>${mkEsc(e[0])}</b> — ${mkEsc(e[1])}</div>`).join('')}` : ''}
           ${g.notes ? `<ul class="mk-notes">${g.notes.map(n => `<li>${mkEsc(n)}</li>`).join('')}</ul>` : ''}
           <button class="unit-link-btn mk-goex" data-topic="${g.id}">Faire les exercices de cette règle</button>
-        </div></div></div>`).join('')}</div>`;
+        </div></div></div>`).join('')}</div>`).join('')}`;
   root.querySelectorAll('.grule-head').forEach(h => h.addEventListener('click', e => {
     if(e.target.closest('.grule-check')) return;
     document.getElementById('mkg-' + h.dataset.toggle).classList.toggle('open');
@@ -494,7 +524,7 @@ function mkRenderGrammar(){
   }));
   root.querySelectorAll('.mini-speak').forEach(b => b.addEventListener('click', () => mkSay(b.dataset.id, b.dataset.say)));
   root.querySelectorAll('.mk-goex').forEach(b => b.addEventListener('click', () => {
-    const set = MK_CHAPTERS[0].exercises.find(s => s.topic === b.dataset.topic);
+    const set = mkAllSets().find(s => s.topic === b.dataset.topic);
     mkGoto('mk-ex'); if(set) mkToggleSet(set.id, true);
   }));
 }
@@ -509,18 +539,17 @@ function mkSetStats(setEl){
 }
 function mkRenderExercises(){
   const root = document.getElementById('view-mk-ex');
-  const chap = MK_CHAPTERS[0];
   root.innerHTML = `
     <p class="eyebrow">Gyakorlatok</p><h1>Exercices</h1>
     <p class="lede">Les séries d’exercices du cahier de grammaire : une série par règle, avec correction immédiate. Une série est validée quand toutes les réponses sont justes.</p>
-    <div class="grammar-module"><p class="grammar-module-title">A1 · Chapitre 2 — ${mkEsc(chap.hu)} (${mkEsc(chap.fr)})</p>
+    ${MK_CHAPTERS.filter(c => (c.exercises||[]).length).map(chap => `<div class="grammar-module"><p class="grammar-module-title">${mkEsc(mkChapLabel(chap))}</p>
     <div class="academy-list">${chap.exercises.map(s => `
       <div class="academy-module" id="mkset-${s.id}">
         <div class="academy-head" data-toggle="${s.id}">
           <button class="academy-check ${mkState.sets[s.id] ? 'done' : ''}" data-set="${s.id}" tabindex="-1" aria-label="Série réussie">✓</button>
           <div class="academy-head-text"><b>${mkEsc(s.hu)}</b><span>${mkEsc(s.fr)}</span></div>
           <span class="mk-score" id="mkscore-${s.id}"></span><span class="academy-caret">▸</span></div>
-        <div class="academy-body"><div class="academy-body-inner" data-sbody="${s.id}"></div></div></div>`).join('')}</div></div>`;
+        <div class="academy-body"><div class="academy-body-inner" data-sbody="${s.id}"></div></div></div>`).join('')}</div></div>`).join('')}`;
   root.querySelectorAll('.academy-head').forEach(h => h.addEventListener('click', e => {
     if(e.target.closest('.academy-check')) return;
     mkToggleSet(h.dataset.toggle);
@@ -533,7 +562,7 @@ function mkToggleSet(id, forceOpen){
   if(!open) return;
   const body = el.querySelector('[data-sbody]');
   if(!body.dataset.ready){
-    const s = MK_CHAPTERS[0].exercises.find(x => x.id === id);
+    const s = mkAllSets().find(x => x.id === id);
     body.innerHTML = s.blocks.map((b, i) => mkBlockHtml(b, id + '-' + i)).join('') +
       `<p class="mk-setmsg" id="mkmsg-${id}"></p>`;
     mkWire(body, () => {

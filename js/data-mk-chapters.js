@@ -336,10 +336,11 @@ const MK_CHAPTERS = [
   }
 ];
 
-/* Chapitres à venir (titres du sommaire des manuels), affichés « bientôt » dans le Parcours. */
+/* Sommaire complet des manuels : les chapitres pas encore construits s’affichent « bientôt ». */
 const MK_ROADMAP = [
   {level:'A1', items:[
     {num:1, hu:'A magyar nyelv', fr:'La langue hongroise'},
+    {num:2, hu:'Találkozás', fr:'Rencontres'},
     {num:3, hu:'Ismerkedés az irodában', fr:'Faire connaissance au bureau'},
     {num:4, hu:'A városban', fr:'En ville'},
     {num:5, hu:'Vásárlás, étterem', fr:'Achats et restaurant'},
